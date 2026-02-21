@@ -1,36 +1,260 @@
 {
-    "models": [
-      { "model": "deepseek-v3.1:671b", "specialization": "Long-context research, technical docs, code generation, complex reasoning (MoE)" },
-      { "model": "minimax-m2.5", "specialization": "Real-world productivity and coding tasks" },
-      { "model": "qwen3-coder-next", "specialization": "Agentic coding workflows, multi-file edits, tool use, local dev" },
-      { "model": "gpt-oss:20b", "specialization": "General purpose, smaller footprint" },
-      { "model": "minimax-m2", "specialization": "Coding and agentic workflows, efficient" },
-      { "model": "ministral-3:3b", "specialization": "Edge/small devices, lightweight general use" },
-      { "model": "devstral-small-2:24b", "specialization": "Codebase exploration, multi-file edits, vision + tools" },
-      { "model": "qwen3.5:397b", "specialization": "General + vision-language, efficient MoE" },
-      { "model": "glm-4.6", "specialization": "Agentic, reasoning, and coding" },
-      { "model": "kimi-k2:1t", "specialization": "Very large general and multimodal" },
-      { "model": "gpt-oss:120b", "specialization": "General purpose, larger capacity" },
-      { "model": "gemini-3-flash-preview", "specialization": "Fast general use, frontier-style" },
-      { "model": "kimi-k2.5", "specialization": "Multimodal agentic, instant + thinking modes" },
-      { "model": "deepseek-v3.2", "specialization": "Efficient reasoning and agent performance" },
-      { "model": "qwen3-vl:235b-instruct", "specialization": "Vision Q&A, images, diagrams, instruction-following" },
-      { "model": "gemma3:27b", "specialization": "Strong general chat and tasks" },
-      { "model": "rnj-1:8b", "specialization": "Code and STEM, small and efficient" },
-      { "model": "kimi-k2-thinking", "specialization": "Chain-of-thought and complex reasoning" },
-      { "model": "qwen3-next:80b", "specialization": "Reasoning, tools, and thinking" },
-      { "model": "nemotron-3-nano:30b", "specialization": "Agentic + thinking, efficient" },
-      { "model": "qwen3-vl:235b", "specialization": "Vision-language, diagrams, multi-image" },
-      { "model": "ministral-3:8b", "specialization": "Edge deployment, balanced size and quality" },
-      { "model": "glm-4.7", "specialization": "Advanced coding and agentic use" },
-      { "model": "glm-5", "specialization": "Complex systems, long-horizon, reasoning + agentic" },
-      { "model": "ministral-3:14b", "specialization": "Edge deployment, more capable" },
-      { "model": "mistral-large-3:675b", "specialization": "General purpose, multilingual, strong all-rounder" },
-      { "model": "gemma3:4b", "specialization": "Lightweight chat and simple tasks" },
-      { "model": "cogito-2.1:671b", "specialization": "General reasoning, MIT-licensed" },
-      { "model": "qwen3-coder:480b", "specialization": "Heavy code generation, 40+ languages, large context" },
-      { "model": "minimax-m2.1", "specialization": "Multilingual, code and engineering" },
-      { "model": "devstral-2:123b", "specialization": "Codebase exploration, multi-file edits, coding agents, tools" },
-      { "model": "gemma3:12b", "specialization": "Mid-size general chat and tasks" }
-    ]
+  "models": [
+    {
+      "model": "deepseek-v3.1:671b",
+      "specialization": "Long-context research, technical docs, code generation, complex reasoning (MoE)",
+      "pricing_per_1m_tokens": {
+        "input": 0.59,
+        "output": 1.69
+      }
+    },
+    {
+      "model": "minimax-m2.5",
+      "specialization": "Real-world productivity and coding tasks",
+      "pricing_per_1m_tokens": {
+        "input": 0.30,
+        "output": 1.20
+      }
+    },
+    {
+      "model": "qwen3-coder-next",
+      "specialization": "Agentic coding workflows, multi-file edits, tool use, local dev",
+      "pricing_per_1m_tokens": {
+        "input": 1.00,
+        "output": 5.00
+      }
+    },
+    {
+      "model": "gpt-oss:20b",
+      "specialization": "General purpose, smaller footprint",
+      "pricing_per_1m_tokens": {
+        "input": 0.15,
+        "output": 0.60
+      }
+    },
+    {
+      "model": "minimax-m2",
+      "specialization": "Coding and agentic workflows, efficient",
+      "pricing_per_1m_tokens": {
+        "input": 0.26,
+        "output": 1.00
+      }
+    },
+    {
+      "model": "ministral-3:3b",
+      "specialization": "Edge/small devices, lightweight general use",
+      "pricing_per_1m_tokens": {
+        "input": 0.04,
+        "output": 0.10
+      }
+    },
+    {
+      "model": "devstral-small-2:24b",
+      "specialization": "Codebase exploration, multi-file edits, vision + tools",
+      "pricing_per_1m_tokens": {
+        "input": 0.20,
+        "output": 0.50
+      }
+    },
+    {
+      "model": "qwen3.5:397b",
+      "specialization": "General + vision-language, efficient MoE",
+      "pricing_per_1m_tokens": {
+        "input": 1.20,
+        "output": 6.00
+      }
+    },
+    {
+      "model": "glm-4.6",
+      "specialization": "Agentic, reasoning, and coding",
+      "pricing_per_1m_tokens": {
+        "input": 1.00,
+        "output": 3.00
+      }
+    },
+    {
+      "model": "kimi-k2:1t",
+      "specialization": "Very large general and multimodal",
+      "pricing_per_1m_tokens": {
+        "input": 2.00,
+        "output": 8.00
+      }
+    },
+    {
+      "model": "gpt-oss:120b",
+      "specialization": "General purpose, larger capacity",
+      "pricing_per_1m_tokens": {
+        "input": 0.60,
+        "output": 1.80
+      }
+    },
+    {
+      "model": "gemini-3-flash-preview",
+      "specialization": "Fast general use, frontier-style",
+      "pricing_per_1m_tokens": {
+        "input": 0.35,
+        "output": 1.05
+      }
+    },
+    {
+      "model": "kimi-k2.5",
+      "specialization": "Multimodal agentic, instant + thinking modes",
+      "pricing_per_1m_tokens": {
+        "input": 1.50,
+        "output": 5.00
+      }
+    },
+    {
+      "model": "deepseek-v3.2",
+      "specialization": "Efficient reasoning and agent performance",
+      "pricing_per_1m_tokens": {
+        "input": 0.28,
+        "output": 0.42
+      }
+    },
+    {
+      "model": "qwen3-vl:235b-instruct",
+      "specialization": "Vision Q&A, images, diagrams, instruction-following",
+      "pricing_per_1m_tokens": {
+        "input": 0.70,
+        "output": 2.80
+      }
+    },
+    {
+      "model": "gemma3:27b",
+      "specialization": "Strong general chat and tasks",
+      "pricing_per_1m_tokens": {
+        "input": 0.20,
+        "output": 0.60
+      }
+    },
+    {
+      "model": "rnj-1:8b",
+      "specialization": "Code and STEM, small and efficient",
+      "pricing_per_1m_tokens": {
+        "input": 0.10,
+        "output": 0.30
+      }
+    },
+    {
+      "model": "kimi-k2-thinking",
+      "specialization": "Chain-of-thought and complex reasoning",
+      "pricing_per_1m_tokens": {
+        "input": 2.50,
+        "output": 10.00
+      }
+    },
+    {
+      "model": "qwen3-next:80b",
+      "specialization": "Reasoning, tools, and thinking",
+      "pricing_per_1m_tokens": {
+        "input": 0.40,
+        "output": 1.50
+      }
+    },
+    {
+      "model": "nemotron-3-nano:30b",
+      "specialization": "Agentic + thinking, efficient",
+      "pricing_per_1m_tokens": {
+        "input": 0.20,
+        "output": 0.60
+      }
+    },
+    {
+      "model": "qwen3-vl:235b",
+      "specialization": "Vision-language, diagrams, multi-image",
+      "pricing_per_1m_tokens": {
+        "input": 0.70,
+        "output": 2.80
+      }
+    },
+    {
+      "model": "ministral-3:8b",
+      "specialization": "Edge deployment, balanced size and quality",
+      "pricing_per_1m_tokens": {
+        "input": 0.10,
+        "output": 0.30
+      }
+    },
+    {
+      "model": "glm-4.7",
+      "specialization": "Advanced coding and agentic use",
+      "pricing_per_1m_tokens": {
+        "input": 1.20,
+        "output": 4.00
+      }
+    },
+    {
+      "model": "glm-5",
+      "specialization": "Complex systems, long-horizon, reasoning + agentic",
+      "pricing_per_1m_tokens": {
+        "input": 2.50,
+        "output": 10.00
+      }
+    },
+    {
+      "model": "ministral-3:14b",
+      "specialization": "Edge deployment, more capable",
+      "pricing_per_1m_tokens": {
+        "input": 0.15,
+        "output": 0.50
+      }
+    },
+    {
+      "model": "mistral-large-3:675b",
+      "specialization": "General purpose, multilingual, strong all-rounder",
+      "pricing_per_1m_tokens": {
+        "input": 0.50,
+        "output": 1.50
+      }
+    },
+    {
+      "model": "gemma3:4b",
+      "specialization": "Lightweight chat and simple tasks",
+      "pricing_per_1m_tokens": {
+        "input": 0.05,
+        "output": 0.15
+      }
+    },
+    {
+      "model": "cogito-2.1:671b",
+      "specialization": "General reasoning, MIT-licensed",
+      "pricing_per_1m_tokens": {
+        "input": 0.60,
+        "output": 1.80
+      }
+    },
+    {
+      "model": "qwen3-coder:480b",
+      "specialization": "Heavy code generation, 40+ languages, large context",
+      "pricing_per_1m_tokens": {
+        "input": 1.00,
+        "output": 5.00
+      }
+    },
+    {
+      "model": "minimax-m2.1",
+      "specialization": "Multilingual, code and engineering",
+      "pricing_per_1m_tokens": {
+        "input": 0.28,
+        "output": 1.10
+      }
+    },
+    {
+      "model": "devstral-2:123b",
+      "specialization": "Codebase exploration, multi-file edits, coding agents, tools",
+      "pricing_per_1m_tokens": {
+        "input": 0.50,
+        "output": 1.50
+      }
+    },
+    {
+      "model": "gemma3:12b",
+      "specialization": "Mid-size general chat and tasks",
+      "pricing_per_1m_tokens": {
+        "input": 0.15,
+        "output": 0.45
+      }
+    }
+  ]
 }
