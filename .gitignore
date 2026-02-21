@@ -8,6 +8,7 @@ frontend/.next/
 backend/.venv/
 backend/__pycache__/
 *.py[cod]
+backend/billing.db
 .env
 .env.local
 *.local
