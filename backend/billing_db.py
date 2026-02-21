@@ -39,6 +39,14 @@ CREATE INDEX IF NOT EXISTS idx_wallet_ledger_user_created_at
 
 CREATE INDEX IF NOT EXISTS idx_wallet_ledger_pi
   ON wallet_ledger_entries(stripe_payment_intent_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_ledger_unique_usage
+  ON wallet_ledger_entries(user_id, subtask_id, type)
+  WHERE type = 'usage' AND subtask_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallet_ledger_unique_topup_pi
+  ON wallet_ledger_entries(stripe_payment_intent_id, type)
+  WHERE type = 'topup' AND stripe_payment_intent_id IS NOT NULL;
 """
 
 
@@ -68,4 +76,3 @@ def init_billing_db() -> None:
         init_db(conn)
     finally:
         conn.close()
-
