@@ -74,3 +74,102 @@ export async function health(): Promise<{
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Agent execution (SSE streaming)
+// ---------------------------------------------------------------------------
+
+export type TaskStatus = "pending" | "running" | "completed" | "failed";
+
+export type SubtaskExecution = {
+  status: TaskStatus;
+  output: string | null;
+  error: string | null;
+  duration: number | null;
+};
+
+export type ExecutionCallbacks = {
+  onAgentStarted: (data: { id: number; title: string; model: string }) => void;
+  onAgentCompleted: (data: {
+    id: number;
+    title: string;
+    model: string;
+    output: string;
+    duration: number;
+  }) => void;
+  onAgentFailed: (data: { id: number; title: string; error: string }) => void;
+  onSynthesizing: () => void;
+  onSynthesisComplete: (data: { output: string }) => void;
+  onError: (error: string) => void;
+};
+
+export function executeSubtasks(
+  result: DecomposeResult,
+  callbacks: ExecutionCallbacks,
+): AbortController {
+  const controller = new AbortController();
+
+  fetch(`${API_BASE}/api/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      original_prompt: result.original_prompt,
+      orchestrator_model: result.orchestrator_model,
+      subtasks: result.subtasks,
+    }),
+    signal: controller.signal,
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`Execute failed: HTTP ${res.status}`);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      function pump(): Promise<void> {
+        return reader.read().then(({ done, value }) => {
+          if (done) return;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop()!;
+
+          let currentEvent = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith("data: ") && currentEvent) {
+              const data = JSON.parse(line.slice(6));
+              switch (currentEvent) {
+                case "agent_started":
+                  callbacks.onAgentStarted(data);
+                  break;
+                case "agent_completed":
+                  callbacks.onAgentCompleted(data);
+                  break;
+                case "agent_failed":
+                  callbacks.onAgentFailed(data);
+                  break;
+                case "synthesizing":
+                  callbacks.onSynthesizing();
+                  break;
+                case "synthesis_complete":
+                  callbacks.onSynthesisComplete(data);
+                  break;
+              }
+              currentEvent = "";
+            }
+          }
+          return pump();
+        });
+      }
+
+      return pump();
+    })
+    .catch((err) => {
+      if (err.name !== "AbortError") {
+        callbacks.onError(err.message);
+      }
+    });
+
+  return controller;
+}

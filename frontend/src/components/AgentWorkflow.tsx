@@ -3,7 +3,6 @@ import {
     ReactFlow,
     Background,
     Controls,
-    MiniMap,
     useNodesState,
     useEdgesState,
     type Node,
@@ -20,10 +19,10 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-    const nodeWidth = 360; // 320px width + 40px gap
-    const nodeHeight = 200; // Approx height
+    const nodeWidth = 340;
+    const nodeHeight = 160;
 
-    dagreGraph.setGraph({ rankdir: 'LR' }); // Left to Right layout
+    dagreGraph.setGraph({ rankdir: 'LR', ranksep: 80, nodesep: 40 });
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -54,17 +53,15 @@ interface AgentWorkflowProps {
 }
 
 export default function AgentWorkflow({ subtasks }: AgentWorkflowProps) {
-    // Memoize nodeTypes inside component to prevent re-creation issues
     const nodeTypes = useMemo(() => ({
         agent: AgentNode,
     }), []);
 
-    // Transform subtasks to nodes and edges
     const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
         const nodes: Node<AgentNodeData>[] = subtasks.map((task) => ({
             id: task.id.toString(),
             type: 'agent',
-            position: { x: 0, y: 0 }, // Position will be calculated by dagre
+            position: { x: 0, y: 0 },
             data: { ...task },
         }));
 
@@ -78,7 +75,7 @@ export default function AgentWorkflow({ subtasks }: AgentWorkflowProps) {
                         source: depId.toString(),
                         target: task.id.toString(),
                         animated: true,
-                        style: { stroke: '#3b82f6', strokeWidth: 2 },
+                        style: { stroke: '#d97757', strokeWidth: 1.5, opacity: 0.6 },
                     });
                 });
             }
@@ -87,18 +84,16 @@ export default function AgentWorkflow({ subtasks }: AgentWorkflowProps) {
         return getLayoutedElements(nodes, edges);
     }, [subtasks]);
 
-    // Use React Flow hooks for state management
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    // Update graph when subtasks change
     useEffect(() => {
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [initialNodes, initialEdges, setNodes, setEdges]);
 
     return (
-        <div className="w-full h-[600px] border border-zinc-800 rounded-xl bg-zinc-950/50 overflow-hidden shadow-inner">
+        <div className="w-full h-[500px] border border-[var(--border)] rounded-xl bg-[var(--surface-raised)] overflow-hidden shadow-sm">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -106,18 +101,16 @@ export default function AgentWorkflow({ subtasks }: AgentWorkflowProps) {
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 fitView
-                className="bg-zinc-950"
-                minZoom={0.5}
+                fitViewOptions={{ padding: 0.2 }}
+                className="bg-[var(--surface-raised)]"
+                minZoom={0.4}
                 maxZoom={1.5}
                 defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                 proOptions={{ hideAttribution: true }}
             >
-                <Background color="#27272a" gap={20} size={1} />
-                <Controls className="!bg-zinc-800 !border-zinc-700 !text-zinc-400 [&>button]:!border-zinc-700 [&>button:hover]:!bg-zinc-700" />
-                <MiniMap
-                    className="!bg-zinc-900 !border-zinc-800"
-                    nodeColor="#3b82f6"
-                    maskColor="rgba(0, 0, 0, 0.6)"
+                <Background color="#e8e5e0" gap={24} size={1} />
+                <Controls
+                    className="!bg-white !border-[#e8e5e0] !rounded-lg !shadow-sm [&>button]:!border-[#e8e5e0] [&>button]:!bg-white [&>button:hover]:!bg-[#f5f3f0] [&>button>svg]:!fill-[#6b6560]"
                 />
             </ReactFlow>
         </div>

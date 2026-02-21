@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
+from agent_executor import ExecutionEngine
 
 
 class ChatMessage(BaseModel):
@@ -35,6 +36,12 @@ class ChatResponse(BaseModel):
 
 class DecomposeRequest(BaseModel):
     prompt: str
+    orchestrator_model: str = "gemma3:12b"
+
+
+class ExecuteRequest(BaseModel):
+    original_prompt: str
+    subtasks: list[dict]
     orchestrator_model: str = "gemma3:12b"
 
 
@@ -106,6 +113,36 @@ def decompose(req: DecomposeRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/execute")
+async def execute(req: ExecuteRequest):
+    """Execute all subtasks via their assigned agents, streaming progress as SSE."""
+    import asyncio
+    import json as _json
+    from fastapi.responses import StreamingResponse
+
+    engine = ExecutionEngine(
+        original_prompt=req.original_prompt,
+        subtasks=req.subtasks,
+        orchestrator_model=req.orchestrator_model,
+        max_workers=8,
+    )
+    event_queue = engine.run()
+
+    async def event_stream():
+        loop = asyncio.get_event_loop()
+        while True:
+            event = await loop.run_in_executor(None, event_queue.get)
+            if event is None:
+                break
+            yield f"event: {event['event']}\ndata: {_json.dumps(event['data'])}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/api/chat", response_model=Optional[ChatResponse])
