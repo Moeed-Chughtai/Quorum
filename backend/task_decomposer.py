@@ -130,19 +130,46 @@ You MUST respond with ONLY valid JSON matching this exact schema, no other text:
 # Public API
 # ---------------------------------------------------------------------------
 
+def _extract_json(text: str) -> str:
+    """
+    Extracts the first valid JSON object from a string by counting braces.
+    This handles cases where the LLM adds prose before/after or where
+    regex is too greedy.
+    """
+    text = text.strip()
+    idx = text.find("{")
+    if idx == -1:
+        return text
+
+    balance = 0
+    start_idx = idx
+    for i in range(start_idx, len(text)):
+        char = text[i]
+        if char == "{":
+            balance += 1
+        elif char == "}":
+            balance -= 1
+            if balance == 0:
+                return text[start_idx : i + 1]
+    
+    # If we get here, braces are unbalanced. Return what we have from start, 
+    # possibly the parser can handle it or give a better error.
+    return text[start_idx:]
+
 def decompose_and_route(prompt: str, orchestrator_model: str = "gemma3:12b") -> dict:
     client = get_ollama_client()
     models_catalog = _load_specializations()
     _router.warmup(models_catalog)
 
     # Phase 1: Decompose with structured output (grammar-constrained)
+    # We use format="json" to force JSON mode, but we still need to parse it safely
     resp = client.chat(
         model=orchestrator_model,
         messages=[
             {"role": "system", "content": _SYSTEM},
             {"role": "user", "content": prompt},
         ],
-        format=DecompositionOutput.model_json_schema(),
+        format="json", # Force JSON output from Ollama
         options={"temperature": 0},
         stream=False,
     )
@@ -151,13 +178,20 @@ def decompose_and_route(prompt: str, orchestrator_model: str = "gemma3:12b") -> 
 
     # Try direct parse first; if model wrapped JSON in prose, extract it
     try:
-        decomposition = DecompositionOutput.model_validate_json(raw)
+        # First try cleaning up any markdown code blocks
+        clean_raw = raw.replace("```json", "").replace("```", "").strip()
+        decomposition = DecompositionOutput.model_validate_json(clean_raw)
     except Exception:
-        # Extract JSON object from mixed text (e.g., "Here's the breakdown: {...}")
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if not match:
-            raise ValueError(f"Model returned no JSON. Raw response: {raw[:500]}")
-        decomposition = DecompositionOutput.model_validate_json(match.group())
+        # Fallback to brace counting extraction
+        try:
+            extracted = _extract_json(raw)
+            decomposition = DecompositionOutput.model_validate_json(extracted)
+        except Exception as e:
+            # Last ditch: try to use the greedy regex but maybe it works if the above failed
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
+            if not match:
+                raise ValueError(f"Model returned no JSON. Raw response: {raw[:500]}") from e
+            decomposition = DecompositionOutput.model_validate_json(match.group())
 
     # Phase 2: Route via keyword scoring (sub-millisecond, no network)
     subtasks = []
