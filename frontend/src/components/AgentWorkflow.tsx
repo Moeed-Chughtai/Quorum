@@ -75,12 +75,25 @@ export default function AgentWorkflow({
         agent: AgentNode,
     }), []);
 
+    const totalsByModel = useMemo(() => {
+        const totals: Record<string, { input_tokens: number; output_tokens: number; total_cost: number }> = {};
+        for (const st of subtasks) {
+            const exec = taskStates[st.id];
+            const model = st.assigned_model;
+            if (!totals[model]) totals[model] = { input_tokens: 0, output_tokens: 0, total_cost: 0 };
+            totals[model].input_tokens += exec?.input_tokens ?? 0;
+            totals[model].output_tokens += exec?.output_tokens ?? 0;
+            totals[model].total_cost += exec?.total_cost ?? 0;
+        }
+        return totals;
+    }, [subtasks, taskStates]);
+
     const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
         const nodes: Node<AgentNodeData>[] = subtasks.map((task) => ({
             id: task.id.toString(),
             type: 'agent',
             position: { x: 0, y: 0 },
-            data: { ...task, execution: taskStates[task.id] },
+            data: { ...task, execution: taskStates[task.id], model_totals: totalsByModel[task.assigned_model] ?? { input_tokens: 0, output_tokens: 0, total_cost: 0 } },
         }));
 
         const edges: Edge[] = [];
@@ -105,7 +118,7 @@ export default function AgentWorkflow({
         });
 
         return getLayoutedElements(nodes, edges);
-    }, [subtasks, taskStates]);
+    }, [subtasks, taskStates, totalsByModel]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);

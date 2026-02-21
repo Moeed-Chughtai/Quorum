@@ -86,6 +86,11 @@ export type SubtaskExecution = {
   output: string | null;
   error: string | null;
   duration: number | null;
+  input_tokens?: number;
+  output_tokens?: number;
+  input_cost?: number;
+  output_cost?: number;
+  total_cost?: number;
 };
 
 export type ExecutionCallbacks = {
@@ -96,6 +101,11 @@ export type ExecutionCallbacks = {
     model: string;
     output: string;
     duration: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    input_cost?: number;
+    output_cost?: number;
+    total_cost?: number;
   }) => void;
   onAgentFailed: (data: { id: number; title: string; error: string }) => void;
   onSynthesizing: () => void;

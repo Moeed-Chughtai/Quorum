@@ -7,6 +7,7 @@ import { CategoryBadge } from './CategoryBadge';
 
 export type AgentNodeData = Subtask & {
     execution?: SubtaskExecution;
+    model_totals?: { input_tokens: number; output_tokens: number; total_cost: number };
 } & Record<string, unknown>;
 
 export type AgentNodeProps = NodeProps<Node<AgentNodeData>>;
@@ -15,6 +16,7 @@ function AgentNode({ data }: AgentNodeProps) {
     const [showOutput, setShowOutput] = useState(false);
     const exec = data.execution;
     const status = exec?.status ?? 'idle';
+    const totals = data.model_totals;
 
     const isRunning = status === 'running';
     const isCompleted = status === 'completed';
@@ -104,6 +106,12 @@ function AgentNode({ data }: AgentNodeProps) {
                     }`} />
                     <span className="text-[11px] font-mono text-[#6b6560]">{data.assigned_model}</span>
                 </div>
+                {totals && (
+                    <span className="text-[11px] font-mono text-[#a8a29e]">
+                        in {totals.input_tokens.toLocaleString()} · out {totals.output_tokens.toLocaleString()} · $
+                        {(totals.total_cost >= 0.01 ? totals.total_cost.toFixed(2) : totals.total_cost.toFixed(4))}
+                    </span>
+                )}
                 {data.depends_on.length > 0 && (
                     <span className="text-[11px] font-mono text-[#a8a29e]">
                         needs {data.depends_on.map(d => `#${String(d).padStart(2, '0')}`).join(', ')}

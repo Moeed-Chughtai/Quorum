@@ -126,16 +126,16 @@ export default function Home() {
     setError(null);
     const init: Record<number, SubtaskExecution> = {};
     for (const st of result.subtasks)
-      init[st.id] = { status: "pending", output: null, error: null, duration: null };
+      init[st.id] = { status: "pending", output: null, error: null, duration: null, input_tokens: 0, output_tokens: 0, input_cost: 0, output_cost: 0, total_cost: 0 };
     setTaskStates(init);
 
     abortRef.current = executeSubtasks(result, {
-      onAgentStarted:    (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], status: "running" } })),
-      onAgentCompleted:  (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, error: null, duration: d.duration } })),
-      onAgentFailed:     (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "failed", output: null, error: d.error, duration: null } })),
-      onSynthesizing:    ()  => setSynthesizing(true),
+      onAgentStarted: (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], status: "running" } })),
+      onAgentCompleted: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, error: null, duration: d.duration, input_tokens: d.input_tokens ?? 0, output_tokens: d.output_tokens ?? 0, input_cost: d.input_cost ?? 0, output_cost: d.output_cost ?? 0, total_cost: d.total_cost ?? 0 } })),
+      onAgentFailed: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "failed", output: null, error: d.error, duration: null } })),
+      onSynthesizing: () => setSynthesizing(true),
       onSynthesisComplete: (d) => { setSynthesizing(false); setFinalOutput(d.output); setExecuting(false); setExecutionDone(true); },
-      onError:           (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
+      onError: (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
     });
   };
 
@@ -225,11 +225,11 @@ export default function Home() {
                     <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
                       {input.length > 0
                         ? (() => {
-                            const trimmed = input.trim();
-                            const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
-                            const tokens = trimmed ? Math.ceil(trimmed.replace(/\s+/g, " ").length / 4) : 0;
-                            return `${words} words · ~${tokens} tokens`;
-                          })()
+                          const trimmed = input.trim();
+                          const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+                          const tokens = trimmed ? Math.ceil(trimmed.replace(/\s+/g, " ").length / 4) : 0;
+                          return `${words} words · ~${tokens} tokens`;
+                        })()
                         : ""}
                     </span>
                   </div>
