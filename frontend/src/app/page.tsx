@@ -490,7 +490,14 @@ export default function Home() {
                 <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 border-t border-[var(--border-subtle)] bg-[var(--surface-raised)]/60 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
-                      {input.length > 0 ? `${input.trim().split(/\s+/).filter(Boolean).length} words` : ""}
+                      {input.length > 0
+                        ? (() => {
+                            const trimmed = input.trim();
+                            const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+                            const tokens = trimmed ? Math.ceil(trimmed.replace(/\s+/g, " ").length / 4) : 0;
+                            return `${words} words · ~${tokens} tokens`;
+                          })()
+                        : ""}
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5">
