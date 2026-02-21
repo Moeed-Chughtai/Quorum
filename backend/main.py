@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ollama_client import get_ollama_client, is_cloud
+from task_decomposer import decompose_and_route
 
 
 class ChatMessage(BaseModel):
@@ -30,6 +31,11 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     message: ChatMessage
     done: bool = True
+
+
+class DecomposeRequest(BaseModel):
+    prompt: str
+    orchestrator_model: str = "gemma3:12b"
 
 
 @asynccontextmanager
@@ -90,6 +96,16 @@ def list_models():
         import logging
         logging.getLogger("uvicorn.error").warning("Ollama list_models failed: %s", msg)
         return {"models": [], "source": source, "error": msg}
+
+
+@app.post("/api/decompose")
+def decompose(req: DecomposeRequest):
+    """Decompose a high-level task into subtasks and route each to the best agent."""
+    try:
+        result = decompose_and_route(req.prompt, orchestrator_model=req.orchestrator_model)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/chat", response_model=Optional[ChatResponse])

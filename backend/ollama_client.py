@@ -1,6 +1,3 @@
-"""
-Ollama client: uses Ollama Cloud when OLLAMA_API_KEY is set, else local Ollama.
-"""
 import os
 from ollama import Client
 
