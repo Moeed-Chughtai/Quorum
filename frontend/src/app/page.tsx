@@ -2,58 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getModels, decompose, type DecomposeResult, type Subtask } from "@/lib/api";
-
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  coding:    { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/30" },
-  reasoning: { bg: "bg-amber-500/10",  text: "text-amber-400",  border: "border-amber-500/30"  },
-  research:  { bg: "bg-cyan-500/10",   text: "text-cyan-400",   border: "border-cyan-500/30"   },
-  writing:   { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
-  vision:    { bg: "bg-pink-500/10",   text: "text-pink-400",   border: "border-pink-500/30"   },
-  math:      { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/30" },
-  data:      { bg: "bg-teal-500/10",   text: "text-teal-400",   border: "border-teal-500/30"   },
-  general:   { bg: "bg-zinc-500/10",   text: "text-zinc-400",   border: "border-zinc-500/30"   },
-};
-
-function CategoryBadge({ category }: { category: string }) {
-  const c = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.general;
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${c.bg} ${c.text} border ${c.border}`}>
-      {category}
-    </span>
-  );
-}
-
-function SubtaskCard({ subtask, index }: { subtask: Subtask; index: number }) {
-  return (
-    <div className={`animate-fade-in stagger-${Math.min(index + 1, 8)} group relative rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-900/80`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold shrink-0">
-            {subtask.id}
-          </div>
-          <h3 className="text-sm font-semibold text-zinc-100 leading-tight">{subtask.title}</h3>
-        </div>
-        <CategoryBadge category={subtask.category} />
-      </div>
-
-      <p className="text-sm text-zinc-400 mb-4 leading-relaxed">{subtask.description}</p>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs font-mono text-zinc-300">{subtask.assigned_model}</span>
-        </div>
-        {subtask.depends_on.length > 0 && (
-          <span className="text-xs text-zinc-500">
-            depends on: {subtask.depends_on.map(d => `#${d}`).join(", ")}
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 text-xs text-zinc-500 italic">{subtask.routing_reason}</p>
-    </div>
-  );
-}
+import { CategoryBadge } from "@/components/CategoryBadge";
+import AgentWorkflow from "@/components/AgentWorkflow";
 
 function LoadingState({ message }: { message: string }) {
   return (
@@ -131,11 +81,12 @@ export default function Home() {
     try {
       setError(null);
       const data = await getModels();
-      setModels(data.models);
+      const sortedModels = data.models.sort((a, b) => a.name.localeCompare(b.name));
+      setModels(sortedModels);
       setSource(data.source as "cloud" | "local");
       if (data.error) setError(data.error);
-      if (data.models.length && !selectedModel)
-        setSelectedModel(data.models[0].name);
+      if (sortedModels.length && !selectedModel)
+        setSelectedModel(sortedModels[0].name);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load models");
       setModels([]);
@@ -253,10 +204,8 @@ export default function Home() {
         {!loading && result && (
           <>
             <ResultSummary result={result} />
-            <div className="space-y-3">
-              {result.subtasks.map((st, i) => (
-                <SubtaskCard key={st.id} subtask={st} index={i} />
-              ))}
+            <div className="w-full animate-fade-in">
+              <AgentWorkflow subtasks={result.subtasks} />
             </div>
           </>
         )}
