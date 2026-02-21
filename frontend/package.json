@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/dagre": "^0.7.53",
+    "@xyflow/react": "^12.10.1",
+    "dagre": "^0.8.5",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
