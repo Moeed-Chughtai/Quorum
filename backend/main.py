@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from billing_db import init_billing_db
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
 from agent_executor import ExecutionEngine
@@ -53,6 +54,10 @@ async def lifespan(app: FastAPI):
         client.list()
     except Exception:
         pass  # Optional: log that Ollama isn't available yet
+    try:
+        init_billing_db()
+    except Exception:
+        pass
     yield
 
 
