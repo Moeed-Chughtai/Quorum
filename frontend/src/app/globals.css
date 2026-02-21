@@ -129,6 +129,17 @@ body::before {
 .stagger-7 { animation-delay: 350ms; }
 .stagger-8 { animation-delay: 400ms; }
 
+.shimmer-bar {
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    rgba(255,255,255,0.4) 50%,
+    currentColor 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 .shimmer-bg {
   background: linear-gradient(
     90deg,
