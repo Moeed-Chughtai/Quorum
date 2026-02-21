@@ -12,6 +12,9 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 
+import json
+from pathlib import Path
+
 from ollama_client import get_ollama_client
 
 # ---------------------------------------------------------------------------
@@ -60,6 +63,29 @@ _AGENT_PERSONAS: dict[str, str] = {
 }
 
 _DEFAULT_PERSONA = _AGENT_PERSONAS["general"]
+
+_SPECIALIZATIONS_PATH = Path(__file__).resolve().parent / "model_specialization.json"
+
+
+def _load_pricing() -> dict[str, dict[str, float]]:
+    try:
+        with open(_SPECIALIZATIONS_PATH) as f:
+            models = json.load(f).get("models", [])
+        out: dict[str, dict[str, float]] = {}
+        for m in models:
+            model = m.get("model")
+            pricing = m.get("pricing_per_1m_tokens") or {}
+            if model:
+                out[model] = {
+                    "input": float(pricing.get("input") or 0),
+                    "output": float(pricing.get("output") or 0),
+                }
+        return out
+    except Exception:
+        return {}
+
+
+_PRICING_PER_1M = _load_pricing()
 
 
 class ExecutionEngine:
@@ -186,12 +212,33 @@ class ExecutionEngine:
             })
 
             client = get_ollama_client()
+            messages = self._build_messages(task)
             resp = client.chat(
                 model=task["assigned_model"],
-                messages=self._build_messages(task),
+                messages=messages,
                 stream=False,
             )
             output = resp["message"]["content"]
+
+            prompt_tokens = (
+                (resp.get("prompt_eval_count") if isinstance(resp, dict) else None)
+                or (getattr(resp, "prompt_eval_count", None))
+            )
+            output_tokens = (
+                (resp.get("eval_count") if isinstance(resp, dict) else None)
+                or (getattr(resp, "eval_count", None))
+            )
+
+            if prompt_tokens is None:
+                prompt_text = "\n".join(m.get("content", "") for m in messages)
+                prompt_tokens = (len(prompt_text) + 3) // 4
+            if output_tokens is None:
+                output_tokens = (len(output) + 3) // 4
+
+            pricing = _PRICING_PER_1M.get(task["assigned_model"], {"input": 0.0, "output": 0.0})
+            input_cost = (float(prompt_tokens) / 1_000_000) * float(pricing["input"])
+            output_cost = (float(output_tokens) / 1_000_000) * float(pricing["output"])
+            total_cost = input_cost + output_cost
 
             with self._lock:
                 task["status"] = "completed"
@@ -206,6 +253,11 @@ class ExecutionEngine:
                     "model": task["assigned_model"],
                     "output": output,
                     "duration": round(task["completed_at"] - task["started_at"], 2),
+                    "input_tokens": int(prompt_tokens),
+                    "output_tokens": int(output_tokens),
+                    "input_cost": round(input_cost, 8),
+                    "output_cost": round(output_cost, 8),
+                    "total_cost": round(total_cost, 8),
                 },
             })
         except Exception as e:
