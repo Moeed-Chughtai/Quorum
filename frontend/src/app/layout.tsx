@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AgentFlow",
+  title: "Quorum",
   description: "Decompose tasks. Assign specialists. Execute in parallel.",
 };
 

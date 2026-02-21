@@ -156,7 +156,7 @@ export default function Home() {
               <BoltIcon />
             </div>
             <span className="text-[14px] font-semibold tracking-tight text-[var(--nav-text)]">
-              AgentFlow
+              Quorum
             </span>
           </div>
           <div className="flex items-center gap-5">
