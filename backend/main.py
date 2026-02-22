@@ -9,11 +9,16 @@ _backend_dir = Path(__file__).resolve().parent
 load_dotenv(_backend_dir.parent / ".env")
 load_dotenv(_backend_dir / ".env")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import stripe
+
 from billing_db import init_billing_db
+from billing_ledger import record_topup_credit
+from billing_stripe import configure_stripe, webhook_secret
+from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
 from agent_executor import ExecutionEngine
@@ -44,6 +49,20 @@ class ExecuteRequest(BaseModel):
     original_prompt: str
     subtasks: list[dict]
     orchestrator_model: str = "gemma3:12b"
+
+class BillingCreateCustomerRequest(BaseModel):
+    user_id: str
+    email: str | None = None
+
+
+class BillingCreateSetupIntentRequest(BaseModel):
+    user_id: str
+
+
+class BillingCreateTopupIntentRequest(BaseModel):
+    user_id: str
+    amount_cents: int
+    currency: str = "usd"
 
 
 @asynccontextmanager
@@ -177,7 +196,102 @@ def chat(req: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/billing/create_customer")
+def billing_create_customer(req: BillingCreateCustomerRequest):
+    try:
+        existing = get_stripe_customer_id(req.user_id)
+        if existing:
+            return {"customer_id": existing}
+        configure_stripe()
+        customer = stripe.Customer.create(
+            email=req.email,
+            metadata={"user_id": req.user_id},
+        )
+        set_stripe_customer_id(req.user_id, customer["id"])
+        return {"customer_id": customer["id"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/billing/create_setup_intent")
+def billing_create_setup_intent(req: BillingCreateSetupIntentRequest):
+    try:
+        existing = get_stripe_customer_id(req.user_id)
+        if not existing:
+            configure_stripe()
+            customer = stripe.Customer.create(metadata={"user_id": req.user_id})
+            set_stripe_customer_id(req.user_id, customer["id"])
+            existing = customer["id"]
+        configure_stripe()
+        si = stripe.SetupIntent.create(
+            customer=existing,
+            payment_method_types=["card"],
+            usage="off_session",
+            metadata={"user_id": req.user_id},
+        )
+        return {"customer_id": existing, "setup_intent_id": si["id"], "client_secret": si["client_secret"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/billing/create_topup_intent")
+def billing_create_topup_intent(req: BillingCreateTopupIntentRequest):
+    if req.amount_cents <= 0:
+        raise HTTPException(status_code=400, detail="amount_cents must be > 0")
+    currency = (req.currency or "usd").lower()
+    if currency != "usd":
+        raise HTTPException(status_code=400, detail="Only usd is supported")
+    try:
+        existing = get_stripe_customer_id(req.user_id)
+        if not existing:
+            configure_stripe()
+            customer = stripe.Customer.create(metadata={"user_id": req.user_id})
+            set_stripe_customer_id(req.user_id, customer["id"])
+            existing = customer["id"]
+        configure_stripe()
+        pi = stripe.PaymentIntent.create(
+            amount=req.amount_cents,
+            currency=currency,
+            customer=existing,
+            automatic_payment_methods={"enabled": True},
+            metadata={"user_id": req.user_id, "purpose": "wallet_topup"},
+        )
+        return {"payment_intent_id": pi["id"], "client_secret": pi["client_secret"], "customer_id": existing}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request, stripe_signature: str | None = Header(default=None, alias="Stripe-Signature")):
+    if not stripe_signature:
+        raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
+    try:
+        payload = await request.body()
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=stripe_signature,
+            secret=webhook_secret(),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if event.get("type") == "payment_intent.succeeded":
+        obj = event.get("data", {}).get("object", {})
+        metadata = obj.get("metadata", {}) or {}
+        if metadata.get("purpose") == "wallet_topup":
+            user_id = metadata.get("user_id")
+            if user_id:
+                amount = obj.get("amount")
+                currency = (obj.get("currency") or "").lower()
+                if currency == "usd" and isinstance(amount, int) and amount > 0:
+                    record_topup_credit(
+                        user_id=user_id,
+                        amount_usd=amount / 100,
+                        stripe_payment_intent_id=obj.get("id"),
+                    )
+    return {"received": True}
 
 if __name__ == "__main__":
     import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -43,6 +43,47 @@ Open [http://localhost:3000](http://localhost:3000). The UI lists available mode
 - `GET /api/health` — backend health and whether Cloud is used.
 - `GET /api/models` — list Ollama models (cloud or local).
 - `POST /api/chat` — chat completion (body: `{ "model": "...", "messages": [...], "stream": false }`).
+- `POST /api/billing/create_customer` — create or fetch a Stripe Customer (body: `{ "user_id": "...", "email": "..." }`).
+- `POST /api/billing/create_setup_intent` — create a SetupIntent to save a payment method (body: `{ "user_id": "..." }`).
+- `POST /api/billing/create_topup_intent` — create a PaymentIntent for wallet top-ups (body: `{ "user_id": "...", "amount_cents": 500 }`).
+- `POST /api/stripe/webhook` — Stripe webhook receiver (signature verified).
+
+## Stripe setup (before launch)
+
+### Backend env vars
+
+Set these in repo root `.env` or `backend/.env` (never commit secrets):
+
+- `STRIPE_SECRET_KEY` (use `sk_test_...` in test mode, `sk_live_...` in live mode)
+- `STRIPE_WEBHOOK_SECRET` (the endpoint signing secret, `whsec_...`)
+
+### Create the webhook endpoint in Stripe Dashboard
+
+1. Stripe Dashboard → Developers → Webhooks (or Event destinations in the new UI).
+2. Add endpoint (Webhook destination) pointing to:
+   - `https://YOUR_BACKEND_DOMAIN/api/stripe/webhook`
+3. Select events:
+   - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
+4. Copy the signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
+
+### Local development (webhook forwarding)
+
+Stripe can’t call `localhost` directly. Use the Stripe CLI to forward events:
+
+```bash
+./.tools/stripe-cli/stripe listen --forward-to http://localhost:8000/api/stripe/webhook
+```
+
+The CLI prints a `whsec_...` secret for local forwarding; set it as `STRIPE_WEBHOOK_SECRET` locally.
+
+### Wallet top-up webhook behavior
+
+Wallet credits happen only for `payment_intent.succeeded` events where the PaymentIntent metadata includes:
+- `purpose=wallet_topup`
+- `user_id=<your user id>`
+
+This metadata is set automatically when creating top-ups via `POST /api/billing/create_topup_intent`.
 
 ## Ollama Cloud models
 
