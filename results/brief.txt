@@ -1,0 +1,7 @@
+Brand: Premium Home Renovations
+Voice: Confident, warm, trustworthy. Luxury feel but approachable.
+Platform: X (Twitter) — max 280 chars for main post.
+CTA: "Book your free consultation today"
+Include: 2-3 best customer quotes, relevant hashtags, alt-text for image.
+Also produce: 2 variant posts + an image generation prompt.
+Target audience: Homeowners aged 30-55 considering renovation.

@@ -1,0 +1,103 @@
+COMPARAISON PIPELINES - 20260221_172700
+======================================================================
+Donnees: 30 avis depuis reviews.json + brief.txt
+
+Etape                        Modele                     In    Out       Cout  Latence
+--------------------------------------------------------------------------------
+A1: Monolith (tout-en-un)    Gemini 3.1 Pro           1213   1020 $ 0.014666    12.6s
+A2: Image                    Gemini 3 Pro Image         17    334 $ 0.134000    31.6s
+B1: Score review #1          Gemini 2.5 Flash Lite     144    196 $ 0.000093     1.1s
+B1: Score review #2          Gemini 2.5 Flash Lite     127     93 $ 0.000050     1.7s
+B1: Score review #3          Gemini 2.5 Flash Lite     134     91 $ 0.000050     1.4s
+B1: Score review #4          Gemini 2.5 Flash Lite     128     87 $ 0.000048     0.7s
+B1: Score review #5          Gemini 2.5 Flash Lite     148    200 $ 0.000095     1.2s
+B1: Score review #6          Gemini 2.5 Flash Lite     127     94 $ 0.000050     1.2s
+B1: Score review #7          Gemini 2.5 Flash Lite     145     86 $ 0.000049     0.7s
+B1: Score review #8          Gemini 2.5 Flash Lite     129     87 $ 0.000048     0.8s
+B1: Score review #9          Gemini 2.5 Flash Lite     141    199 $ 0.000094     1.3s
+B1: Score review #10         Gemini 2.5 Flash Lite     129     97 $ 0.000052     1.9s
+B1: Score review #11         Gemini 2.5 Flash Lite     149     72 $ 0.000044     0.8s
+B1: Score review #12         Gemini 2.5 Flash Lite     124    109 $ 0.000056     0.9s
+B1: Score review #13         Gemini 2.5 Flash Lite     138    124 $ 0.000063     0.8s
+B1: Score review #14         Gemini 2.5 Flash Lite     121     63 $ 0.000037     0.8s
+B1: Score review #15         Gemini 2.5 Flash Lite     143     98 $ 0.000054     0.9s
+B1: Score review #16         Gemini 2.5 Flash Lite     124    198 $ 0.000092     1.1s
+B1: Score review #17         Gemini 2.5 Flash Lite     145    129 $ 0.000066     0.9s
+B1: Score review #18         Gemini 2.5 Flash Lite     131     66 $ 0.000040     1.0s
+B1: Score review #19         Gemini 2.5 Flash Lite     149     92 $ 0.000052     0.8s
+B1: Score review #20         Gemini 2.5 Flash Lite     123     61 $ 0.000037     0.8s
+B1: Score review #21         Gemini 2.5 Flash Lite     140    127 $ 0.000065     1.2s
+B1: Score review #22         Gemini 2.5 Flash Lite     135    115 $ 0.000059     1.1s
+B1: Score review #23         Gemini 2.5 Flash Lite     146    152 $ 0.000075     0.8s
+B1: Score review #24         Gemini 2.5 Flash Lite     128     63 $ 0.000038     0.7s
+B1: Score review #25         Gemini 2.5 Flash Lite     141     98 $ 0.000053     1.0s
+B1: Score review #26         Gemini 2.5 Flash Lite     125     59 $ 0.000036     0.8s
+B1: Score review #27         Gemini 2.5 Flash Lite     155    125 $ 0.000066     0.8s
+B1: Score review #28         Gemini 2.5 Flash Lite     129     68 $ 0.000040     0.9s
+B1: Score review #29         Gemini 2.5 Flash Lite     146    126 $ 0.000065     0.9s
+B1: Score review #30         Gemini 2.5 Flash Lite     123     61 $ 0.000037     0.8s
+B2: Selector                 Gemini 2.5 Flash Lite    1830    271 $ 0.000291     1.5s
+B3: Copywriter               Gemini 3 Flash            471    425 $ 0.001511     4.3s
+B4: Image Prompt             Gemini 2.5 Flash Lite     129    192 $ 0.000090     2.0s
+B5: Image                    Riverflow V2 Fast         196   1482 $ 0.020000    43.0s
+--------------------------------------------------------------------------------
+Pipeline A total:  $0.14867
+Pipeline B (sans polish): $0.02359
+Pipeline B (avec polish): $0.02359
+Economie: 84.1%
+Image Pipeline A: C:\Users\prote\Downloads\test cheap\results\image_pipeline_a_20260221_172700.jpg
+Image Pipeline B: C:\Users\prote\Downloads\test cheap\results\image_pipeline_b_20260221_172700.png
+
+======================================================================
+OUTPUT PIPELINE A (Monolith)
+======================================================================
+ - *Perfect.*
+
+4.  **Hashtags (3-5 relevant):**
+    *   #HomeRenovation
+    *   #LuxuryLiving
+    *   
+
+======================================================================
+OUTPUT PIPELINE B (Copywriter - Flash)
+======================================================================
+Here are three high-conversion X posts tailored for **Premium Home Renovations**, blending luxury aesthetics with a trustworthy voice.
+
+### 1. Main X Post (Angle: Magazine-Worthy Transformations)
+"Our kitchen looks like it came straight out of a magazine. Would recommend to anyone!" ✨
+
+At Premium Home Renovations, we don’t just remodel; we create masterpieces. Elevate your living space with award-winning design. 
+
+Book your free consultation today: [Link]
+
+---
+
+### 2. Variant 1 (Angle: End-to-End Professionalism)
+"From the initial consultation to the final walkthrough, everything was professional and top-notch." 🤝
+
+Luxury is in the details—and the peace of mind. Experience a renovation where communication is as seamless as the craftsmanship.
+
+Book your free consultation today: [Link]
+
+---
+
+### 3. Variant 2 (Angle: Comprehensive Capability)
+"They handled our full home renovation with incredible skill. Every room looks stunning." 🏡
+
+Whether it’s a bespoke kitchen or a complete home transformation, we bring your vision to life with world-class expertise.
+
+Book your free consultation today: [Link]
+
+---
+
+### 4. Relevant Hashtags
+#HomeRenovation #LuxuryInteriors #InteriorDesign #HomeRemodel #DreamHome
+
+---
+
+### 5. Image Generation Prompt & Alt-Text
+**Image Generation Prompt:**
+> A high-end, cinematic wide shot of a luxury modern kitchen and open-concept living area. Features include white marble waterfall islands, bespoke dark wood cabinetry, gold pendant lighting, and floor-to-ceiling windows with soft natural light. The atmosphere is warm, clean, and sophisticated. Hyper-realistic, 8k resolution, architectural photography style.
+
+**Alt-Text for Image:**
+> A stunning, sun-drenched luxury kitchen featuring a large marble island, custom dark wood cabinets, and elegant gold fixtures. The space opens into a sophisticated living area, showcasing a seamless and high-end home renovation.

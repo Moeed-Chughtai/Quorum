@@ -1,0 +1,492 @@
+[
+  {
+    "step": "A1: Monolith (tout-en-un)",
+    "model": "Gemini 3.1 Pro",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior social media strategist and copywriter."
+      },
+      {
+        "role": "user",
+        "content": "Brand: Premium Home Renovations\nVoice: Confident, warm, trustworthy. Luxury feel but approachable.\nPlatform: X (Twitter) — max 280 chars for main post.\nCTA: \"Book your free consultation today\"\nInclude: 2-3 best customer quotes, relevant hashtags, alt-text for image.\nAlso produce: 2 variant posts + an image generation prompt.\nTarget audience: Homeowners aged 30-55 considering renovation.\n\nHere are 30 Google Reviews from our customers:\n  Review #1: \"Absolutely amazing experience! The team went above and beyond to help us. Our kitchen renovation looks like it came straight out of a magazine. Would recommend to anyone!\"\n  Review #2: \"Good work overall. Finished on time but communication could have been better during the project.\"\n  Review #3: \"5 stars! They transformed our bathroom completely. The tile work is flawless and the attention to detail is incredible.\"\n  Review #4: \"Decent service. The price was fair but nothing exceptional about the final result.\"\n  Review #5: \"I cannot say enough good things about this company. From the initial consultation to the final walkthrough, everything was professional and top-notch. The custom cabinetry they built is a work of art.\"\n  Review #6: \"Average experience. They did what was asked but didn't go the extra mile.\"\n  Review #7: \"Wow! Our living room remodel exceeded all expectations. The designer really understood our vision and the craftsmen executed it perfectly. Best investment we've made in our home.\"\n  Review #8: \"The project took longer than initially quoted. Quality was fine but the delays were frustrating.\"\n  Review #9: \"Outstanding! They handled our full home renovation with incredible skill. Every room looks stunning. The project manager kept us informed every step of the way.\"\n  Review #10: \"It was okay. Some minor issues with the paint job that needed touch-ups.\"\n  Review #11: \"Life-changing renovation! Our outdated 1970s kitchen is now a modern chef's paradise. The quartz countertops and custom island are absolutely gorgeous. Worth every penny!\"\n  Review #12: \"Satisfactory work. Met the basic requirements of the contract.\"\n  Review #13: \"Exceptional craftsmanship! The hardwood flooring they installed is beautiful. They even helped us pick the perfect stain color. Very knowledgeable team.\"\n  Review #14: \"Had some scheduling issues but the end result was acceptable.\"\n  Review #15: \"Best home improvement company in the area! They rebuilt our deck and it's absolutely stunning. Used premium materials and the finish is impeccable. Our neighbors are jealous!\"\n  Review #16: \"Fine work. Nothing to complain about but nothing extraordinary either.\"\n  Review #17: \"These guys are artists! The custom built-in shelving they created for our library is museum-quality. Every joint is perfect. They truly care about their craft.\"\n  Review #18: \"Project went over budget by about 10%. The quality was good but the cost management could improve.\"\n  Review #19: \"A dream come true! Our master suite renovation is like staying in a luxury hotel every night. The walk-in shower with the rainfall head was the best decision ever. Thank you!\"\n  Review #20: \"Standard renovation work. Got the job done within a reasonable timeframe.\"\n  Review #21: \"Incredible attention to detail! They noticed things we would have missed. The crown molding and trim work throughout our home is absolutely flawless. True professionals.\"\n  Review #22: \"Mixed feelings. Some aspects were great, others were just average. The kitchen looks good but the bathroom could have been better.\"\n  Review #23: \"Beyond impressed! The outdoor living space they created is perfect for entertaining. The stone patio, built-in grill, and pergola look like they belong in a luxury resort.\"\n  Review #24: \"Reasonable prices and decent quality. Would consider using them again for smaller projects.\"\n  Review #25: \"Absolutely phenomenal! Our basement transformation from a dingy storage space to a beautiful family room with home theater is unbelievable. The soundproofing they did is incredible!\"\n  Review #26: \"They showed up on time and did clean work. Nothing fancy but reliable.\"\n  Review #27: \"I'm blown away by the quality! The French doors they installed open up our dining room beautifully. The trim work matches our 1920s home perfectly. They respected the character of our house.\"\n  Review #28: \"Good but not great. The materials used were quality but some of the finishing work was rushed.\"\n  Review #29: \"Cannot recommend highly enough! They saved our flood-damaged home and made it even better than before. The insurance process was stressful but they handled everything with grace and expertise.\"\n  Review #30: \"Completed the project as described. Fair pricing and professional conduct throughout.\"\n\nPlease produce ALL of the following in a single response:\n1. Pick the 2-3 best review quotes (most compelling, specific, emotional).\n2. Write a main X (Twitter) post (max 280 chars) incorporating a quote snippet.\n3. Write 2 variant posts (different angles, also max 280 chars each).\n4. Suggest 3-5 relevant hashtags.\n5. Write alt-text for a promotional image.\n6. Write a detailed image generation prompt (style, composition, mood, colors).\n\nFormat your response clearly with labeled sections."
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #1",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Absolutely amazing experience! The team went above and beyond to help us. Our kitchen renovation looks like it came straight out of a magazine. Would recommend to anyone!\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #2",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Good work overall. Finished on time but communication could have been better during the project.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #3",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"5 stars! They transformed our bathroom completely. The tile work is flawless and the attention to detail is incredible.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #4",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Decent service. The price was fair but nothing exceptional about the final result.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #5",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"I cannot say enough good things about this company. From the initial consultation to the final walkthrough, everything was professional and top-notch. The custom cabinetry they built is a work of art.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #6",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Average experience. They did what was asked but didn't go the extra mile.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #7",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Wow! Our living room remodel exceeded all expectations. The designer really understood our vision and the craftsmen executed it perfectly. Best investment we've made in our home.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #8",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"The project took longer than initially quoted. Quality was fine but the delays were frustrating.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #9",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Outstanding! They handled our full home renovation with incredible skill. Every room looks stunning. The project manager kept us informed every step of the way.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #10",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"It was okay. Some minor issues with the paint job that needed touch-ups.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #11",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Life-changing renovation! Our outdated 1970s kitchen is now a modern chef's paradise. The quartz countertops and custom island are absolutely gorgeous. Worth every penny!\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #12",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Satisfactory work. Met the basic requirements of the contract.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #13",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Exceptional craftsmanship! The hardwood flooring they installed is beautiful. They even helped us pick the perfect stain color. Very knowledgeable team.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #14",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Had some scheduling issues but the end result was acceptable.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #15",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Best home improvement company in the area! They rebuilt our deck and it's absolutely stunning. Used premium materials and the finish is impeccable. Our neighbors are jealous!\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #16",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Fine work. Nothing to complain about but nothing extraordinary either.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #17",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"These guys are artists! The custom built-in shelving they created for our library is museum-quality. Every joint is perfect. They truly care about their craft.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #18",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Project went over budget by about 10%. The quality was good but the cost management could improve.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #19",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"A dream come true! Our master suite renovation is like staying in a luxury hotel every night. The walk-in shower with the rainfall head was the best decision ever. Thank you!\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #20",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Standard renovation work. Got the job done within a reasonable timeframe.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #21",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Incredible attention to detail! They noticed things we would have missed. The crown molding and trim work throughout our home is absolutely flawless. True professionals.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #22",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Mixed feelings. Some aspects were great, others were just average. The kitchen looks good but the bathroom could have been better.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #23",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Beyond impressed! The outdoor living space they created is perfect for entertaining. The stone patio, built-in grill, and pergola look like they belong in a luxury resort.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #24",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Reasonable prices and decent quality. Would consider using them again for smaller projects.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #25",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Absolutely phenomenal! Our basement transformation from a dingy storage space to a beautiful family room with home theater is unbelievable. The soundproofing they did is incredible!\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #26",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"They showed up on time and did clean work. Nothing fancy but reliable.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #27",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"I'm blown away by the quality! The French doors they installed open up our dining room beautifully. The trim work matches our 1920s home perfectly. They respected the character of our house.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #28",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Good but not great. The materials used were quality but some of the finishing work was rushed.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #29",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Cannot recommend highly enough! They saved our flood-damaged home and made it even better than before. The insurance process was stressful but they handled everything with grace and expertise.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B1: Score review #30",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a review analyst. Score the review and extract the best quote."
+      },
+      {
+        "role": "user",
+        "content": "Score this Google Review on 5 criteria (1-5 each):\n- Credibility (specific details, believable)\n- Specificity (mentions particular services/features)\n- Emotion (enthusiasm, strong positive feeling)\n- Product mention (references specific work done)\n- Tone (professional, quotable)\n\nReview: \"Completed the project as described. Fair pricing and professional conduct throughout.\"\n\nRespond in JSON: {\"overall_score\": X, \"tags\": [...], \"best_quote\": \"...\"}"
+      }
+    ]
+  },
+  {
+    "step": "B2: Selector",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a content curator. Select the best review quotes for marketing."
+      },
+      {
+        "role": "user",
+        "content": "From these scored reviews, pick the top 3 most compelling quotes and suggest 2-3 marketing angles.\n\nScored reviews:\n[\n {\n  \"index\": 0,\n  \"review\": \"Absolutely amazing experience! The team went above and beyond to help us. Our kitchen renovation looks like it came straight out of a magazine. Would recommend to anyone!\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 4.0,\\n  \\\"criteria_scores\\\": {\\n    \\\"Credibility\\\": 3,\\n    \\\"Specificity\\\": 4,\\n    \\\"Emotion\\\": 5,\\n    \\\"Product_mention\\\": 4,\\n    \\\"Tone\\\": 4\\n  },\\n  \\\"best_quote\\\": \\\"Our kitchen renovation looks like it came straight out of a magazine.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 1,\n  \"review\": \"Good work overall. Finished on time but communication could have been better during the project.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 13,\\n  \\\"tags\\\": [\\n    \\\"Mixed Feedback\\\",\\n    \\\"Neutral\\\",\\n    \\\"Timely\\\"\\n  ],\\n  \\\"best_quote\\\": \\\"Good work overall.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 2,\n  \"review\": \"5 stars! They transformed our bathroom completely. The tile work is flawless and the attention to detail is incredible.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 4.4,\\n  \\\"scores\\\": {\\n    \\\"Credibility\\\": 4,\\n    \\\"Specificity\\\": 4,\\n    \\\"Emotion\\\": 4,\\n    \\\"Product_mention\\\": 5,\\n    \\\"Tone\\\": 5\\n  },\\n  \\\"best_quote\\\": \\\"The tile work is flawless and the attention to detail is incredible.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 3,\n  \"review\": \"Decent service. The price was fair but nothing exceptional about the final result.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 12,\\n  \\\"tags\\\": [\\n    \\\"neutral\\\",\\n    \\\"fair pricing\\\",\\n    \\\"average result\\\",\\n    \\\"lacks detail\\\"\\n  ],\\n  \\\"best_quote\\\": \\\"Decent service.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 4,\n  \"review\": \"I cannot say enough good things about this company. From the initial consultation to the final walkthrough, everything was professional and top-notch. The custom cabinetry they built is a work of art.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 4.6,\\n  \\\"scores\\\": {\\n    \\\"Credibility\\\": 4,\\n    \\\"Specificity\\\": 4,\\n    \\\"Emotion\\\": 5,\\n    \\\"Product mention\\\": 5,\\n    \\\"Tone\\\": 5\\n  },\\n  \\\"tags\\\": [\\n    \\\"High Praise\\\",\\n    \\\"End-to-End Service\\\",\\n    \\\"Artistic Quality\\\"\\n  ],\\n  \\\"best_quote\\\": \\\"The custom cabinetry they built is a work of art.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 5,\n  \"review\": \"Average experience. They did what was asked but didn't go the extra mile.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 10,\\n  \\\"criteria_scores\\\": {\\n    \\\"Credibility\\\": 2,\\n    \\\"Specificity\\\": 1,\\n    \\\"Emotion\\\": 2,\\n    \\\"Product mention\\\": 2,\\n    \\\"Tone\\\": 3\\n  },\\n  \\\"best_quote\\\": \\\"They did what was asked but didn't go the extra mile.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 6,\n  \"review\": \"Wow! Our living room remodel exceeded all expectations. The designer really understood our vision and the craftsmen executed it perfectly. Best investment we've made in our home.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 4.4,\\n  \\\"criteria_scores\\\": {\\n    \\\"Credibility\\\": 4,\\n    \\\"Specificity\\\": 3,\\n    \\\"Emotion\\\": 5,\\n    \\\"Product mention\\\": 4,\\n    \\\"Tone\\\": 4\\n  },\\n  \\\"tags\\\": [\\n    \\\"Exceeded expectations\\\",\\n    \\\"Design understanding\\\",\\n    \\\"Craftsmanship\\\",\\n    \\\"Good investment\\\"\\n  ],\\n  \\\"best_quote\\\": \\\"Our living room remodel exceeded all expectations.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 7,\n  \"review\": \"The project took longer than initially quoted. Quality was fine but the delays were frustrating.\",\n  \"scoring\": \"Here is the analysis of the review:\\n\\n| Criterion | Score (1-5) | Rationale |\\n| :--- | :--- | :--- |\\n| **Credibility** | 3 | Mentions a specific issue (delays vs. quote), making it believable, but lacks details on *why* it took longer. |\\n| **Specificity** | 2 | Mentions \\\"the project\\\" but no specific service, feature, or outcome is detailed. |\\n| **Emotion** | 2 | Neutral to slightly negative. \\\"Frustrating\\\" shows mild negative emotion, but there is no enthusiasm. |\\n| **Product Mention** | 3 | Mentions the general output (\\\"Quality was fine\\\"), implying a completed service, but lacks specifics. |\\n| **Tone** | 3 | Direct and moderately objective. It's reportive rather than overly emotional or highly professional. |\\n\\nThe overall score is the average of these criteria, slightly\"\n },\n {\n  \"index\": 8,\n  \"review\": \"Outstanding! They handled our full home renovation with incredible skill. Every room looks stunning. The project manager kept us informed every step of the way.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 4.6,\\n  \\\"tags\\\": {\\n    \\\"Credibility\\\": 4,\\n    \\\"Specificity\\\": 4,\\n    \\\"Emotion\\\": 5,\\n    \\\"Product mention\\\": 5,\\n    \\\"Tone\\\": 5\\n  },\\n  \\\"best_quote\\\": \\\"They handled our full home renovation with incredible skill.\\\"\\n}\\n```\"\n },\n {\n  \"index\": 9,\n  \"review\": \"It was okay. Some minor issues with the paint job that needed touch-ups.\",\n  \"scoring\": \"```json\\n{\\n  \\\"overall_score\\\": 2.5,\\n  \\\"scores\\\": {\\n    \\\"Credibility\\\": 3,\\n    \\\"Specificity\\\": 2,\\n    \\\"Emotion\\\": 1,\\n    \\\"Product_mention\\\": 3,\\n    \\\"Tone\\\": 3\\n  },\\n  \\\"best_quote\\\": \\\"Some minor issues with the paint job that needed touch-ups.\\\"\\n}\\n```\"\n }\n]\n\nRespond in JSON: {\"top_quotes\": [\"...\",\"...\",\"...\"], \"angles\": [\"...\",\"...\"]}"
+      }
+    ]
+  },
+  {
+    "step": "B3: Copywriter",
+    "model": "Gemini 3 Flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an expert social media copywriter for luxury home renovation brands."
+      },
+      {
+        "role": "user",
+        "content": "Brand: Premium Home Renovations\nVoice: Confident, warm, trustworthy. Luxury feel but approachable.\nPlatform: X (Twitter) — max 280 chars for main post.\nCTA: \"Book your free consultation today\"\nInclude: 2-3 best customer quotes, relevant hashtags, alt-text for image.\nAlso produce: 2 variant posts + an image generation prompt.\nTarget audience: Homeowners aged 30-55 considering renovation.\n\nSelected quotes and angles:\n```json\n{\n  \"top_quotes\": [\n    \"The custom cabinetry they built is a work of art.\",\n    \"Our kitchen renovation looks like it came straight out of a magazine.\",\n    \"They handled our full home renovation with incredible skill.\"\n  ],\n  \"angles\": [\n    \"Focus on Artistic Quality & Craftsmanship: Highlight quotes that use words like 'art,' 'flawless,' and 'incredible skill' to position the service as high-end and detail-oriented.\",\n    \"The 'Magazine-Worthy' Transformation: Leverage the specific, aspirational outcome ('came straight out of a magazine') to appeal to customers seeking dramatic, high-impact results.\",\n    \"End-to-End Professionalism & Trust: Use quotes that mention comprehensive service ('full home renovation') combined with high praise for execution to build trust in managing large, complex projects.\"\n  ]\n}\n```\n\nWrite:\n1. Main X post (max 280 chars) using one of the quotes.\n2. Variant 1 (different angle, max 280 chars).\n3. Variant 2 (different angle, max 280 chars).\n4. 3-5 relevant hashtags.\n5. Alt-text for a promotional image."
+      }
+    ]
+  },
+  {
+    "step": "B4: Image Prompt",
+    "model": "Gemini 2.5 Flash Lite",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a visual prompt engineer for AI image generation."
+      },
+      {
+        "role": "user",
+        "content": "Based on this social media post for a luxury home renovation brand, create a detailed image generation prompt.\n\nPost: ### 1. Main X Post (Angle: Artistic Quality & Craftsmanship)\n“The custom cabinetry they built is a work of art.” 🎨\n\nAt Premium Home Renovations, we don’t just build rooms; we curate spaces that reflect your lifestyle with flawless precision. Quality you can feel, beauty you can see.\n\nBook your free \n\nInclude: style (photorealistic), composition, lighting, mood, color palette, and negative prompts.\nFormat: a single detailed prompt paragraph."
+      }
+    ]
+  },
+  {
+    "step": "B6: Premium polish",
+    "model": "Gemini 3.1 Pro",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a luxury brand editor. Refine this copy for maximum impact."
+      },
+      {
+        "role": "user",
+        "content": "Polish this X post and variants for a premium luxury home renovation brand. Keep the same structure but elevate the language.\n\n### 1. Main X Post (Angle: Artistic Quality & Craftsmanship)\n“The custom cabinetry they built is a work of art.” 🎨\n\nAt Premium Home Renovations, we don’t just build rooms; we curate spaces that reflect your lifestyle with flawless precision. Quality you can feel, beauty you can see.\n\nBook your free consultation today! ✨\n\n---\n\n### 2. Variant 1 (Angle: Magazine-Worthy Transformation)\nYour home, elevated. 🥂\n\n“Our kitchen renovation looks like it came straight out of a magazine.” \n\nStop dreaming about the perfect home and start living in it. We bring high-end design and aspirational results to every square inch.\n\nBook your free consultation today! 📖✨\n\n---\n\n### 3. Variant 2 (Angle: End-to-End Professionalism & Trust)\nLarge-scale renovations require more than just tools—they require mastery. 🏗️\n\n“They handled our full home renovation with incredible skill.” \n\nTrust your biggest investment to the experts who prioritize detail and deadlines. \n\nBook your free consultation today! 🤝🏠\n\n---\n\n### 4. Relevant Hashtags\n#LuxuryHomeRenovation #InteriorDesign #HomeTransformation #CustomCraftsmanship #DreamHome\n\n---\n\n### 5. Alt-Text for Promotional Image\n**Alt-Text:** A wide-angle, high-resolution shot of a luxury modern kitchen. It features bespoke floor-to-ceiling walnut cabinetry, a large marble waterfall island with gold fixtures, and designer pendant lighting. The space is bright, airy, and impeccably styled, reflecting a \"magazine-worthy\" finish.\n\n---\n\n### 6. Image Generation Prompt\n**Prompt:** Interior photography, ultra-luxury modern kitchen and dining area, bespoke dark wood cabinetry with intricate grain details, white Calacatta marble countertops, brushed gold hardware, warm ambient recessed lighting, floor-to-ceiling windows showing a manicured garden, high-end architectural digest style, 8k resolution, cinematic lighting, sophisticated and inviting atmosphere."
+      }
+    ]
+  }
+]
