@@ -8,6 +8,7 @@ France fallback (nuclear-heavy grid, ~55-70 gCO2/kWh).
 """
 
 import json as _json
+import math
 import os
 import re
 import urllib.error
@@ -137,6 +138,128 @@ def baseline_gco2(total_tokens: int, carbon_intensity: float) -> float:
 # Default GPU power (W) for duration-based energy. A100 80GB ~400W; adjust if known.
 DEFAULT_GPU_WATTS = 400.0
 PUE = 1.12  # Power usage effectiveness (datacenter overhead)
+
+
+def get_carbon_forecast(zone: str = "FR") -> dict:
+    """Return 24 h of historical carbon intensity + 8 h extrapolated forecast.
+
+    Data source priority:
+      1. Electricity Maps /v3/carbon-intensity/history  (real hourly data, free tier)
+      2. Physics-informed synthetic model — two-cycle sinusoidal diurnal curve
+         based on published demand patterns (IEA, ENTSO-E).
+
+    Forecast strategy: same-hour value from 24 h ago (strong diurnal
+    autocorrelation for all grid types) with the synthetic curve as fallback.
+    """
+    from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+
+    now = _dt.now(_tz.utc)
+    current = get_carbon_intensity(zone)
+    source = "synthetic_model"
+    raw_history: list[dict] = []
+
+    api_key = os.environ.get("ELECTRICITY_MAPS_API_KEY", "").strip()
+    if api_key:
+        try:
+            req = urllib.request.Request(
+                f"https://api.electricitymap.org/v3/carbon-intensity/history?zone={zone}",
+                headers={"auth-token": api_key},
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = _json.loads(resp.read().decode())
+                raw_history = data.get("history", [])
+                source = "electricity_maps"
+        except Exception:
+            pass
+
+    # Daily amplitude (fraction of base intensity).
+    # Nuclear/hydro grids are very flat; fossil/wind grids swing more with demand.
+    _amp = {
+        "FR": 0.12, "NO": 0.08, "SE": 0.10,
+        "DE": 0.30, "GB": 0.28, "US": 0.25,
+    }.get(zone, 0.20)
+    base_fb = _ZONE_FALLBACKS.get(zone, _ZONE_FALLBACKS["EU"])
+
+    def _synth(dt: "_dt") -> float:
+        """Two-cycle sinusoidal demand model (UTC time).
+        Primary peak ~07:00 UTC (morning); secondary ~18:00 UTC (evening).
+        Valleys ~03:00 and ~14:00.
+        """
+        h = dt.hour + dt.minute / 60.0
+        primary   = math.sin(math.pi * (h - 7)  / 12)
+        secondary = math.sin(math.pi * (h - 18) / 12)
+        factor = 1.0 + _amp * (0.65 * primary + 0.35 * secondary)
+        factor = max(0.75, min(1.35, factor))
+        # Deterministic micro-noise so consecutive same-hour values differ slightly
+        seed = (dt.year * 1000 + dt.timetuple().tm_yday * 24 + dt.hour) % 997
+        noise = ((seed * 6271) % 100) / 100.0 * _amp * 0.12
+        return round(base_fb * factor + base_fb * noise, 1)
+
+    # ── Build history (last 24 hourly samples) ─────────────────────────────
+    if source == "electricity_maps" and raw_history:
+        history = [
+            {
+                "dt": pt["datetime"],
+                "intensity": float(pt["carbonIntensity"]),
+                "is_estimate": bool(pt.get("isEstimated", False)),
+            }
+            for pt in raw_history[-24:]
+        ]
+    else:
+        history = [
+            {
+                "dt": (now - _td(hours=24 - i)).replace(minute=0, second=0, microsecond=0).isoformat(),
+                "intensity": _synth(now - _td(hours=24 - i)),
+                "is_estimate": True,
+            }
+            for i in range(24)
+        ]
+
+    # ── Build 8 h forecast ─────────────────────────────────────────────────
+    # Prefer yesterday's same-hour intensity (diurnal autocorrelation r ≈ 0.85
+    # for most grids over a 24 h horizon — see Haben et al. 2019).
+    hourly_hist: dict[int, float] = {}
+    for pt in history:
+        try:
+            dt_pt = _dt.fromisoformat(pt["dt"].replace("Z", "+00:00"))
+            hourly_hist[dt_pt.hour] = pt["intensity"]
+        except Exception:
+            pass
+
+    forecast = []
+    for h in range(1, 9):
+        t = now + _td(hours=h)
+        t_r = t.replace(minute=0, second=0, microsecond=0)
+        intensity = float(hourly_hist.get(t_r.hour, _synth(t)))
+        forecast.append({
+            "dt": t_r.isoformat(),
+            "intensity": intensity,
+            "is_estimate": True,
+        })
+
+    # ── Green window ────────────────────────────────────────────────────────
+    green_window = None
+    if forecast:
+        best = min(forecast, key=lambda p: p["intensity"])
+        best_idx = forecast.index(best)
+        minutes_from_now = (best_idx + 1) * 60
+        savings_pct = max(0.0, (current - best["intensity"]) / current * 100)
+        if savings_pct > 3.0:
+            green_window = {
+                "dt": best["dt"],
+                "intensity": best["intensity"],
+                "minutes_from_now": minutes_from_now,
+                "savings_pct": round(savings_pct, 1),
+            }
+
+    return {
+        "zone": zone,
+        "current_intensity": current,
+        "history": history,
+        "forecast": forecast,
+        "green_window": green_window,
+        "source": source,
+    }
 
 
 def estimate_gco2_from_duration_ns(

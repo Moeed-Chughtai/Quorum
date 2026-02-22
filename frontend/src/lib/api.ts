@@ -24,6 +24,28 @@ export type CarbonIntensity = {
   source: "electricity_maps" | "fallback";
 };
 
+export type ForecastPoint = {
+  dt: string;          // ISO 8601 timestamp
+  intensity: number;   // gCO2/kWh
+  is_estimate: boolean;
+};
+
+export type GreenWindow = {
+  dt: string;
+  intensity: number;   // gCO2/kWh at green window
+  minutes_from_now: number;
+  savings_pct: number; // relative savings vs current intensity
+};
+
+export type CarbonForecast = {
+  zone: string;
+  current_intensity: number;
+  history: ForecastPoint[];   // last 24 hourly samples (real or synthetic)
+  forecast: ForecastPoint[];  // next 8 hourly samples (estimated)
+  green_window: GreenWindow | null;
+  source: "electricity_maps" | "synthetic_model";
+};
+
 export type CarbonSummary = {
   pipeline_gco2: number;
   agent_gco2: number;      // agent routing cost only (excludes synthesis)
@@ -43,6 +65,12 @@ export async function getModels(): Promise<{
   error?: string;
 }> {
   const res = await fetch(`${API_BASE}/api/models`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function getCarbonForecast(zone = "FR"): Promise<CarbonForecast> {
+  const res = await fetch(`${API_BASE}/api/carbon-forecast?zone=${zone}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

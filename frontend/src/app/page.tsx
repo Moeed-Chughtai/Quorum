@@ -6,15 +6,18 @@ import remarkGfm from "remark-gfm";
 import {
   getModels,
   getCarbonIntensity,
+  getCarbonForecast,
   decompose,
   executeSubtasks,
   type DecomposeResult,
   type SubtaskExecution,
   type CarbonIntensity,
   type CarbonSummary,
+  type CarbonForecast,
 } from "@/lib/api";
 import AgentWorkflow from "@/components/AgentWorkflow";
 import ExecutionTimeline from "@/components/ExecutionTimeline";
+import GreenWindowScheduler from "@/components/GreenWindowScheduler";
 
 /* ------------------------------------------------------------------ */
 /* Icons                                                               */
@@ -139,6 +142,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("graph");
   const [shortcutMod, setShortcutMod] = useState("Ctrl"); // stable for SSR; updated in useEffect
 
+  // Green window scheduling
+  const [forecast, setForecast] = useState<CarbonForecast | null>(null);
+  const [scheduledAt, setScheduledAt] = useState<number | null>(null); // Date.now() target
+  const [countdownStr, setCountdownStr] = useState<string | null>(null);
+  const [shouldAutoExecute, setShouldAutoExecute] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const executionStartRef = useRef<number>(0);
@@ -181,6 +190,46 @@ export default function Home() {
   useEffect(() => {
     getCarbonIntensity("FR").then(setCarbonIntensity).catch(() => {});
   }, []);
+
+  // Fetch 24 h history + 8 h forecast for green-window scheduling
+  useEffect(() => {
+    getCarbonForecast("FR").then(setForecast).catch(() => {});
+  }, []);
+
+  // Countdown ticker — runs only while scheduledAt is set
+  useEffect(() => {
+    if (!scheduledAt) { setCountdownStr(null); return; }
+    const tick = () => {
+      const rem = scheduledAt - Date.now();
+      if (rem <= 0) {
+        setScheduledAt(null);
+        setCountdownStr(null);
+        setShouldAutoExecute(true);
+      } else {
+        const s = Math.ceil(rem / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        setCountdownStr(
+          h > 0
+            ? `${h}h ${String(m).padStart(2, "0")}m`
+            : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+        );
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [scheduledAt]);
+
+  // Fire execute when the scheduled countdown reaches zero
+  useEffect(() => {
+    if (shouldAutoExecute && result && !executing) {
+      setShouldAutoExecute(false);
+      handleExecute();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoExecute]);
 
   useEffect(() => {
     setShortcutMod(typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent) ? "\u2318" : "Ctrl");
@@ -265,6 +314,8 @@ export default function Home() {
     setTotalCarbon(0);
     setCarbonSummary(null);
     setCarbonTimeSeries([]);
+    setScheduledAt(null);
+    setCountdownStr(null);
     setError(null);
     setActiveTab("graph");
   };
@@ -371,6 +422,19 @@ export default function Home() {
 
           {/* Graph tab */}
           <div className={`h-full overflow-auto ${activeTab === "graph" ? "" : "hidden"}`}>
+            {/* Green window scheduler — shown only before execution starts */}
+            {!executing && !executionDone && forecast && (
+              <div className="max-w-5xl mx-auto px-6 pt-4 pb-1">
+                <GreenWindowScheduler
+                  forecast={forecast}
+                  onRunNow={handleExecute}
+                  onSchedule={(delayMs) => setScheduledAt(Date.now() + delayMs)}
+                  countdown={countdownStr}
+                  onCancelSchedule={() => { setScheduledAt(null); setCountdownStr(null); }}
+                  disabled={executing}
+                />
+              </div>
+            )}
             <AgentWorkflow
               subtasks={result.subtasks}
               taskStates={taskStates}

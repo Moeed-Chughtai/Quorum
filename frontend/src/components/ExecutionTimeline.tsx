@@ -3,6 +3,47 @@
 import React, { useMemo } from 'react';
 import { type Subtask, type SubtaskExecution, type CarbonSummary } from '@/lib/api';
 
+// ── CO₂ equivalency constants (published sources) ─────────────────────────────
+// Driving: EEA 2023 EU fleet average ~120 gCO₂/km
+// Phone charge: ~20 Wh × 0.4 kgCO₂/kWh world avg = 8 gCO₂/charge
+// Google search: Google Environmental Report 2023 ~0.3 gCO₂/query
+// LED 9 W for 1 h: 9 W × 0.475 kgCO₂/kWh world avg = 4.28 gCO₂/h
+// Netflix HD 1 h: IEA 2020 revised estimate ~36 gCO₂/h
+const EQ = {
+    DRIVE_GCO2_PER_KM:    120,
+    PHONE_GCO2:             8,
+    SEARCH_GCO2:          0.3,
+    LED_GCO2_PER_HOUR:   4.28,
+    STREAM_GCO2_PER_HOUR:  36,
+} as const;
+
+function buildEquivalencies(gco2: number): { icon: string; label: string; value: string }[] {
+    const items: { icon: string; label: string; value: string }[] = [];
+
+    const searches = gco2 / EQ.SEARCH_GCO2;
+    items.push({ icon: '🔍', label: 'Google searches', value: searches.toFixed(searches < 2 ? 1 : 0) });
+
+    const phoneCharge = gco2 / EQ.PHONE_GCO2;
+    items.push({ icon: '📱', label: 'phone charges', value: phoneCharge < 0.1 ? phoneCharge.toFixed(3) : phoneCharge.toFixed(2) });
+
+    const driveKm = gco2 / EQ.DRIVE_GCO2_PER_KM;
+    const driveM  = Math.round(driveKm * 1000);
+    items.push({
+        icon: '🚗',
+        label: driveM < 1000 ? 'm of driving' : 'km of driving',
+        value: driveM < 1000 ? String(driveM) : driveKm.toFixed(2),
+    });
+
+    const ledMins = (gco2 / EQ.LED_GCO2_PER_HOUR) * 60;
+    items.push({
+        icon: '💡',
+        label: 'min LED light',
+        value: ledMins < 1 ? ledMins.toFixed(1) : Math.round(ledMins).toFixed(0),
+    });
+
+    return items;
+}
+
 // ── Colours ──────────────────────────────────────────────────────────────────
 const CAT_COLOR: Record<string, string> = {
     research: '#7c9ef8', code: '#d97757', writing: '#a78bfa',
@@ -342,6 +383,78 @@ export default function ExecutionTimeline({
                             <span className="text-emerald-600">{breakdown.reduce((s, a) => s + a.gco2, 0).toFixed(5)} gCO₂</span>
                             <span>·</span>
                             <span>{breakdown.length} agents</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Carbon Receipt ── */}
+                {carbonSummary && (
+                    <div className="bg-white rounded-xl border border-[var(--border-subtle)] shadow-sm overflow-hidden">
+                        <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-raised)]/40 flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z" />
+                            </svg>
+                            <span className="text-[10px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.1em]">
+                                Carbon Receipt
+                            </span>
+                        </div>
+                        <div className="px-4 py-3 space-y-3">
+                            {/* Pipeline cost equivalencies */}
+                            <div>
+                                <div className="text-[9px] text-[var(--text-tertiary)] mb-2">
+                                    This pipeline used{' '}
+                                    <span className="font-mono text-emerald-600">{carbonSummary.pipeline_gco2.toFixed(4)} gCO₂</span>
+                                    {' '}— equivalent to:
+                                </div>
+                                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                                    {buildEquivalencies(carbonSummary.pipeline_gco2).map(eq => (
+                                        <div key={eq.label}
+                                            className="bg-[var(--surface-raised)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-2 flex flex-col gap-0.5">
+                                            <span className="text-[14px] leading-none">{eq.icon}</span>
+                                            <span className="text-[10px] font-mono font-medium text-[var(--text-primary)] tabular-nums">
+                                                {eq.value}×
+                                            </span>
+                                            <span className="text-[8px] text-[var(--text-tertiary)] leading-tight">
+                                                {eq.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Savings equivalency */}
+                            {carbonSummary.savings_pct > 0 && (() => {
+                                const savedGco2 = Math.max(0, carbonSummary.baseline_gco2 - carbonSummary.agent_gco2);
+                                if (savedGco2 < 0.0001) return null;
+                                const savedKm = savedGco2 / EQ.DRIVE_GCO2_PER_KM * 1000; // metres
+                                const savedSearches = savedGco2 / EQ.SEARCH_GCO2;
+                                return (
+                                    <div className="pt-2 border-t border-[var(--border-subtle)] flex items-start gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
+                                            <svg className="w-2.5 h-2.5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-[9px] text-[var(--text-tertiary)] leading-relaxed">
+                                            By routing to specialist models instead of the{' '}
+                                            <span className="font-mono">{carbonSummary.zone}</span> orchestrator for all tasks,
+                                            you avoided{' '}
+                                            <span className="font-mono text-emerald-600">{savedGco2.toFixed(4)} gCO₂</span>
+                                            {' '}— like not driving{' '}
+                                            <span className="font-mono text-emerald-600">
+                                                {savedKm < 1000 ? `${Math.round(savedKm)}m` : `${(savedKm / 1000).toFixed(2)}km`}
+                                            </span>
+                                            {' '}or skipping{' '}
+                                            <span className="font-mono text-emerald-600">{savedSearches.toFixed(0)} Google searches</span>.
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Footer: sources */}
+                        <div className="px-4 pb-3 text-[7.5px] text-[var(--text-tertiary)] opacity-50 leading-relaxed">
+                            Sources: EEA 2023 (driving), IEA 2020 (streaming), Google Env. Report 2023 (search), A100 TDP model (GPU inference)
                         </div>
                     </div>
                 )}

@@ -22,7 +22,7 @@ from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
 from agent_executor import ExecutionEngine
-from carbon_tracker import get_carbon_intensity
+from carbon_tracker import get_carbon_intensity, get_carbon_forecast
 
 
 class ChatMessage(BaseModel):
@@ -116,6 +116,12 @@ def carbon_intensity_endpoint(zone: str = "FR"):
     intensity = get_carbon_intensity(zone)
     source = "electricity_maps" if __import__("os").environ.get("ELECTRICITY_MAPS_API_KEY") else "fallback"
     return {"intensity": intensity, "zone": zone, "source": source}
+
+
+@app.get("/api/carbon-forecast")
+def carbon_forecast_endpoint(zone: str = "FR"):
+    """Return 24 h historical + 8 h forecast carbon intensity for the given zone."""
+    return get_carbon_forecast(zone)
 
 
 @app.get("/api/models")
