@@ -1,25 +1,30 @@
 """
-Parallel agent execution engine.
+Async parallel agent execution engine.
 
-Builds a dependency graph from decomposed subtasks, runs independent tasks
-concurrently via ThreadPoolExecutor, streams SSE events, then synthesises
-all agent outputs into one final deliverable.
+Launches every subtask as a concurrent asyncio task. Each task uses an
+asyncio.Event per dependency for O(1) signaling instead of polling.
+Streams tokens to the frontend via SSE as they arrive (stream=True on every
+Ollama call). Tracks energy consumption and CO2 per agent using model size
+heuristics and real-time grid carbon intensity.
 """
 
+import asyncio
 import time
-import threading
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
 
 import json
 from pathlib import Path
 
-from ollama_client import get_ollama_client
+from ollama_client import get_async_ollama_client
+from carbon_tracker import (
+    estimate_gco2,
+    estimate_gco2_from_duration_ns,
+    get_carbon_intensity,
+)
 from billing_ledger import record_usage_debit
 
 # ---------------------------------------------------------------------------
-# Category-specific system prompts — gives each agent a sharper role
+# Category-specific system prompts
 # ---------------------------------------------------------------------------
 
 _AGENT_PERSONAS: dict[str, str] = {
@@ -89,6 +94,48 @@ def _load_pricing() -> dict[str, dict[str, float]]:
 _PRICING_PER_1M = _load_pricing()
 
 
+def _extract_token(chunk) -> str:
+    """Safely pull the text token out of a streaming chunk (dict or object)."""
+    try:
+        msg = chunk["message"]
+        return msg["content"] or ""
+    except (KeyError, TypeError):
+        pass
+    try:
+        return chunk.message.content or ""
+    except AttributeError:
+        return ""
+
+
+def _extract_usage(chunk) -> tuple[int | None, int | None, int | None, int | None]:
+    """Extract token counts and durations from a chunk (final chunk has done=True).
+    Returns (prompt_eval_count, eval_count, prompt_eval_duration_ns, eval_duration_ns).
+    """
+    def get(key: str, default=None):
+        try:
+            return chunk.get(key, default)
+        except (AttributeError, TypeError):
+            pass
+        try:
+            return getattr(chunk, key, default)
+        except AttributeError:
+            return default
+
+    prompt_count = get("prompt_eval_count")
+    eval_count = get("eval_count")
+    prompt_dur = get("prompt_eval_duration")
+    eval_dur = get("eval_duration")
+    if prompt_count is not None:
+        prompt_count = int(prompt_count)
+    if eval_count is not None:
+        eval_count = int(eval_count)
+    if prompt_dur is not None:
+        prompt_dur = int(prompt_dur)
+    if eval_dur is not None:
+        eval_dur = int(eval_dur)
+    return (prompt_count, eval_count, prompt_dur, eval_dur)
+
+
 class ExecutionEngine:
     def __init__(
         self,
@@ -96,16 +143,27 @@ class ExecutionEngine:
         subtasks: list[dict],
         orchestrator_model: str = "gemma3:12b",
         user_id: str = "demo",
-        max_workers: int = 8,
+        carbon_intensity: float | None = None,
+        zone: str = "FR",
     ):
         self.original_prompt = original_prompt
         self.orchestrator_model = orchestrator_model
         self.user_id = user_id
         self.tasks: dict[int, dict] = {}
         self.dependents: dict[int, list[int]] = defaultdict(list)
-        self.events: Queue = Queue()
-        self._lock = threading.Lock()
-        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        self.events: asyncio.Queue = asyncio.Queue()
+        self._lock = asyncio.Lock()
+
+        # Carbon tracking
+        self._carbon_intensity = carbon_intensity if carbon_intensity is not None else get_carbon_intensity(zone)
+        self._zone = zone
+        self._total_gco2 = 0.0
+        self._total_tokens = 0
+        self._pipeline_start = time.time()
+        self._agents_done_time: float | None = None
+
+        # One asyncio.Event per task — set when the task finishes (any outcome).
+        self._done: dict[int, asyncio.Event] = {}
 
         for st in subtasks:
             self.tasks[st["id"]] = {
@@ -115,55 +173,12 @@ class ExecutionEngine:
                 "error": None,
                 "started_at": None,
                 "completed_at": None,
+                "tokens": 0,
+                "gco2": 0.0,
             }
+            self._done[st["id"]] = asyncio.Event()
             for dep_id in st.get("depends_on", []):
                 self.dependents[dep_id].append(st["id"])
-
-    # ------------------------------------------------------------------
-    # Scheduling
-    # ------------------------------------------------------------------
-
-    def _ready_ids(self) -> list[int]:
-        ready = []
-        for tid, t in self.tasks.items():
-            if t["status"] != "pending":
-                continue
-            if all(self.tasks[d]["status"] == "completed" for d in t["depends_on"]):
-                ready.append(tid)
-        return ready
-
-    def _propagate_failures(self):
-        changed = True
-        while changed:
-            changed = False
-            for tid, t in self.tasks.items():
-                if t["status"] != "pending":
-                    continue
-                for dep_id in t["depends_on"]:
-                    if self.tasks[dep_id]["status"] == "failed":
-                        t["status"] = "failed"
-                        t["error"] = f"Skipped: upstream task #{dep_id} failed"
-                        changed = True
-                        self.events.put({
-                            "event": "agent_failed",
-                            "data": {"id": tid, "title": t["title"], "error": t["error"]},
-                        })
-                        break
-
-    def _launch_ready(self):
-        with self._lock:
-            self._propagate_failures()
-            ready = self._ready_ids()
-            for tid in ready:
-                self.tasks[tid]["status"] = "running"
-                self._executor.submit(self._run_task, tid)
-
-            all_done = all(
-                t["status"] in ("completed", "failed") for t in self.tasks.values()
-            )
-
-        if all_done:
-            self._synthesise()
 
     # ------------------------------------------------------------------
     # Agent prompt construction
@@ -185,10 +200,15 @@ class ExecutionEngine:
         parts = [f"## Overall Project Goal\n{self.original_prompt}"]
 
         if task["depends_on"]:
+            # Budget context space evenly across dependencies (~2000 tokens each, 4 chars/token)
+            max_dep_chars = max(2_000, 8_000 // max(1, len(task["depends_on"])))
             parts.append("\n## Outputs from prerequisite tasks (use these as context):")
             for dep_id in task["depends_on"]:
                 dep = self.tasks[dep_id]
-                parts.append(f"\n### Task {dep_id}: {dep['title']}\n{dep['output']}")
+                output = dep["output"] or ""
+                if len(output) > max_dep_chars:
+                    output = output[:max_dep_chars] + "\n... [output truncated to fit context]"
+                parts.append(f"\n### Task {dep_id}: {dep['title']}\n{output}")
 
         parts.append(f"\n## Your Task\n**{task['title']}**\n{task['description']}")
 
@@ -198,52 +218,88 @@ class ExecutionEngine:
         ]
 
     # ------------------------------------------------------------------
-    # Single task execution (runs in thread pool)
+    # Single task execution
     # ------------------------------------------------------------------
 
-    def _run_task(self, task_id: int):
+    async def _run_task(self, task_id: int) -> None:
         task = self.tasks[task_id]
-        try:
-            task["started_at"] = time.time()
-            self.events.put({
-                "event": "agent_started",
-                "data": {
-                    "id": task_id,
-                    "title": task["title"],
-                    "model": task["assigned_model"],
-                },
-            })
 
-            client = get_ollama_client()
+        for dep_id in task["depends_on"]:
+            await self._done[dep_id].wait()
+            if self.tasks[dep_id]["status"] == "failed":
+                async with self._lock:
+                    task["status"] = "failed"
+                    task["error"] = f"Skipped: upstream task #{dep_id} failed"
+                    task["completed_at"] = time.time()
+                await self.events.put({
+                    "event": "agent_failed",
+                    "data": {"id": task_id, "title": task["title"], "error": task["error"]},
+                })
+                self._done[task_id].set()
+                return
+
+        await self.events.put({
+            "event": "agent_started",
+            "data": {
+                "id": task_id,
+                "title": task["title"],
+                "model": task["assigned_model"],
+            },
+        })
+
+        try:
+            client = get_async_ollama_client()
+            chunks: list[str] = []
             messages = self._build_messages(task)
-            resp = client.chat(
+            last_chunk = None
+
+            async for chunk in await client.chat(
                 model=task["assigned_model"],
                 messages=messages,
-                stream=False,
-            )
-            output = resp["message"]["content"]
+                stream=True,
+            ):
+                last_chunk = chunk
+                token = _extract_token(chunk)
+                if token:
+                    chunks.append(token)
+                    await self.events.put({
+                        "event": "agent_token",
+                        "data": {"id": task_id, "token": token},
+                    })
 
-            prompt_tokens = (
-                (resp.get("prompt_eval_count") if isinstance(resp, dict) else None)
-                or (getattr(resp, "prompt_eval_count", None))
-            )
-            output_tokens = (
-                (resp.get("eval_count") if isinstance(resp, dict) else None)
-                or (getattr(resp, "eval_count", None))
-            )
+            output = "".join(chunks)
 
-            if prompt_tokens is None:
-                prompt_text = "\n".join(m.get("content", "") for m in messages)
-                prompt_tokens = (len(prompt_text) + 3) // 4
-            if output_tokens is None:
-                output_tokens = (len(output) + 3) // 4
+            # Real token counts and durations from Ollama's final stream chunk (done=True)
+            input_chars = sum(len(m["content"]) for m in messages)
+            input_tokens_est = max(1, input_chars // 4)
+            output_tokens_est = max(1, len(output) // 4)
+            prompt_tokens = input_tokens_est
+            output_tokens = output_tokens_est
+            p_dur_ns, e_dur_ns = None, None
+            if last_chunk is not None:
+                p_count, e_count, p_dur_ns, e_dur_ns = _extract_usage(last_chunk)
+                if p_count is not None and e_count is not None:
+                    prompt_tokens = p_count
+                    output_tokens = e_count
 
+            total_tokens = prompt_tokens + output_tokens
+
+            # Prefer gCO2 from real GPU time (Ollama durations) when available
+            if p_dur_ns is not None and e_dur_ns is not None and (p_dur_ns + e_dur_ns) > 0:
+                gco2 = estimate_gco2_from_duration_ns(
+                    p_dur_ns + e_dur_ns, self._carbon_intensity
+                )
+            else:
+                gco2 = estimate_gco2(task["assigned_model"], total_tokens, self._carbon_intensity)
+
+            # Billing: debit wallet (sync call run in thread)
             pricing = _PRICING_PER_1M.get(task["assigned_model"], {"input": 0.0, "output": 0.0})
             input_cost = (float(prompt_tokens) / 1_000_000) * float(pricing["input"])
             output_cost = (float(output_tokens) / 1_000_000) * float(pricing["output"])
             total_cost = input_cost + output_cost
 
-            billing = record_usage_debit(
+            billing = await asyncio.to_thread(
+                record_usage_debit,
                 user_id=self.user_id,
                 subtask_id=task_id,
                 model=task["assigned_model"],
@@ -252,7 +308,7 @@ class ExecutionEngine:
                 total_cost_usd=total_cost,
             )
             if billing.get("status") == "insufficient_funds":
-                self.events.put({
+                await self.events.put({
                     "event": "billing_required",
                     "data": {
                         "user_id": self.user_id,
@@ -264,7 +320,7 @@ class ExecutionEngine:
                 raise RuntimeError("Insufficient wallet balance")
 
             if billing.get("status") == "debited":
-                self.events.put({
+                await self.events.put({
                     "event": "wallet_updated",
                     "data": {
                         "user_id": self.user_id,
@@ -272,12 +328,16 @@ class ExecutionEngine:
                     },
                 })
 
-            with self._lock:
+            async with self._lock:
                 task["status"] = "completed"
                 task["output"] = output
                 task["completed_at"] = time.time()
+                task["tokens"] = total_tokens
+                task["gco2"] = gco2
+                self._total_gco2 += gco2
+                self._total_tokens += total_tokens
 
-            self.events.put({
+            await self.events.put({
                 "event": "agent_completed",
                 "data": {
                     "id": task_id,
@@ -285,6 +345,8 @@ class ExecutionEngine:
                     "model": task["assigned_model"],
                     "output": output,
                     "duration": round(task["completed_at"] - task["started_at"], 2),
+                    "gco2": round(gco2, 6),
+                    "tokens": total_tokens,
                     "input_tokens": int(prompt_tokens),
                     "output_tokens": int(output_tokens),
                     "input_cost": round(input_cost, 8),
@@ -292,39 +354,49 @@ class ExecutionEngine:
                     "total_cost": round(total_cost, 8),
                 },
             })
+
+            # Emit running carbon total after each agent completes
+            await self.events.put({
+                "event": "carbon_update",
+                "data": {"total_gco2": round(self._total_gco2, 6)},
+            })
+
         except Exception as e:
-            with self._lock:
+            async with self._lock:
                 task["status"] = "failed"
                 task["error"] = str(e)
                 task["completed_at"] = time.time()
 
-            self.events.put({
+            await self.events.put({
                 "event": "agent_failed",
                 "data": {"id": task_id, "title": task["title"], "error": str(e)},
             })
 
-        self._launch_ready()
+        finally:
+            self._done[task_id].set()
 
     # ------------------------------------------------------------------
-    # Synthesis — merge all agent outputs into one final deliverable
+    # Synthesis
     # ------------------------------------------------------------------
 
-    def _synthesise(self):
-        self.events.put({"event": "synthesizing", "data": {}})
+    async def _synthesise(self) -> None:
+        await self.events.put({"event": "synthesizing", "data": {}})
 
-        # Gather completed outputs
         sections: list[str] = []
         for tid in sorted(self.tasks):
             t = self.tasks[tid]
             if t["status"] == "completed" and t["output"]:
-                sections.append(f"### Agent {tid}: {t['title']} ({t['assigned_model']})\n{t['output']}")
+                sections.append(
+                    f"### Agent {tid}: {t['title']} ({t['assigned_model']})\n{t['output']}"
+                )
 
         if not sections:
-            self.events.put({
+            await self.events.put({
                 "event": "synthesis_complete",
                 "data": {"output": "No agent outputs to synthesise."},
             })
-            self.events.put(None)
+            await self._emit_carbon_summary(synthesis_tokens=0)
+            await self.events.put(None)
             return
 
         system = (
@@ -345,34 +417,133 @@ class ExecutionEngine:
         )
         user_msg = (
             f"## Original Request\n{self.original_prompt}\n\n"
-            f"## Agent Outputs\n" + "\n\n".join(sections)
+            "## Agent Outputs\n" + "\n\n".join(sections)
         )
 
+        synthesis_output_chars = 0
+        synthesis_tokens = 0
+        synthesis_duration_ns: int | None = None
         try:
-            client = get_ollama_client()
-            resp = client.chat(
+            client = get_async_ollama_client()
+            chunks_list: list[str] = []
+            last_synth_chunk = None
+
+            async for chunk in await client.chat(
                 model=self.orchestrator_model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user_msg},
                 ],
-                stream=False,
-            )
-            final = resp["message"]["content"]
+                stream=True,
+            ):
+                last_synth_chunk = chunk
+                token = _extract_token(chunk)
+                if token:
+                    chunks_list.append(token)
+                    await self.events.put({
+                        "event": "synthesis_token",
+                        "data": {"token": token},
+                    })
+
+            final = "".join(chunks_list)
+            synthesis_output_chars = len(final)
+            if last_synth_chunk is not None:
+                p_count, e_count, p_dur, e_dur = _extract_usage(last_synth_chunk)
+                if p_count is not None and e_count is not None:
+                    synthesis_tokens = p_count + e_count
+                else:
+                    synthesis_tokens = (len(user_msg) + synthesis_output_chars) // 4
+                if p_dur is not None and e_dur is not None:
+                    synthesis_duration_ns = p_dur + e_dur
+            else:
+                synthesis_tokens = (len(user_msg) + synthesis_output_chars) // 4
+
         except Exception as e:
             final = f"Synthesis failed ({e}). Raw agent outputs above."
+            synthesis_tokens = 0
 
-        self.events.put({
+        await self.events.put({
             "event": "synthesis_complete",
             "data": {"output": final},
         })
-        self.events.put(None)  # sentinel — stream is done
+
+        await self._emit_carbon_summary(
+            synthesis_tokens=synthesis_tokens,
+            synthesis_duration_ns=synthesis_duration_ns,
+        )
+        await self.events.put(None)
+
+    async def _emit_carbon_summary(
+        self,
+        synthesis_tokens: int = 0,
+        synthesis_duration_ns: int | None = None,
+    ) -> None:
+        """Emit the final carbon impact summary for display in the UI."""
+        # ------------------------------------------------------------------
+        # Time: compare parallel agent phase vs sequential agent phase.
+        # Synthesis time is identical in both worlds so it cancels out.
+        # ------------------------------------------------------------------
+        agent_durations = [
+            (t["completed_at"] - t["started_at"])
+            for t in self.tasks.values()
+            if t["completed_at"] and t["started_at"]
+        ]
+        sequential_time_s = sum(agent_durations)
+        # Wall-clock time for just the agent phase (recorded before synthesis started)
+        agents_done = getattr(self, "_agents_done_time", time.time())
+        parallel_agent_time_s = round(agents_done - self._pipeline_start, 1)
+        time_savings_pct = (
+            max(0.0, (sequential_time_s - parallel_agent_time_s) / sequential_time_s * 100)
+            if sequential_time_s > 0 else 0.0
+        )
+
+        # ------------------------------------------------------------------
+        # Carbon: compare routed agents vs orchestrator handling every subtask.
+        # Use real GPU duration for synthesis CO2 when Ollama provided it.
+        # ------------------------------------------------------------------
+        agent_gco2 = self._total_gco2
+        agent_tokens = self._total_tokens
+        if synthesis_duration_ns and synthesis_duration_ns > 0:
+            synth_gco2 = estimate_gco2_from_duration_ns(
+                synthesis_duration_ns, self._carbon_intensity
+            )
+        else:
+            synth_gco2 = estimate_gco2(
+                self.orchestrator_model, synthesis_tokens, self._carbon_intensity
+            )
+        pipeline_gco2 = agent_gco2 + synth_gco2
+
+        # Baseline: orchestrator doing each subtask with the same token counts
+        bl_gco2 = estimate_gco2(self.orchestrator_model, agent_tokens, self._carbon_intensity)
+        savings_pct = (
+            max(0.0, (bl_gco2 - agent_gco2) / bl_gco2 * 100)
+            if bl_gco2 > 0 else 0.0
+        )
+
+        total_tokens = agent_tokens + synthesis_tokens
+
+        await self.events.put({
+            "event": "carbon_summary",
+            "data": {
+                "pipeline_gco2": round(pipeline_gco2, 6),
+                "agent_gco2": round(agent_gco2, 6),
+                "baseline_gco2": round(bl_gco2, 6),
+                "savings_pct": round(savings_pct, 1),
+                "time_savings_pct": round(time_savings_pct, 1),
+                "pipeline_time_s": parallel_agent_time_s,
+                "sequential_time_s": round(sequential_time_s, 1),
+                "carbon_intensity": round(self._carbon_intensity, 1),
+                "zone": self._zone,
+                "total_tokens": total_tokens,
+            },
+        })
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def run(self) -> Queue:
-        """Start execution. Returns the event Queue for SSE streaming."""
-        self._launch_ready()
-        return self.events
+    async def run(self) -> None:
+        """Launch all tasks concurrently. Each task self-blocks on its own deps."""
+        await asyncio.gather(*[self._run_task(tid) for tid in self.tasks])
+        self._agents_done_time = time.time()
+        await self._synthesise()

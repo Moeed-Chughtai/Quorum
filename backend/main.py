@@ -22,6 +22,7 @@ from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
 from agent_executor import ExecutionEngine
+from carbon_tracker import get_carbon_intensity
 
 
 class ChatMessage(BaseModel):
@@ -68,7 +69,7 @@ class BillingCreateTopupIntentRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Pre-warm: ensure client can list models (validates connection)
+    # Pre-warm Ollama connection
     try:
         client = get_ollama_client()
         client.list()
@@ -76,6 +77,11 @@ async def lifespan(app: FastAPI):
         pass  # Optional: log that Ollama isn't available yet
     try:
         init_billing_db()
+    except Exception:
+        pass
+    # Pre-fetch carbon intensity (caches for the process lifetime)
+    try:
+        get_carbon_intensity("FR")
     except Exception:
         pass
     yield
@@ -102,6 +108,14 @@ app.add_middleware(
 @app.get("/api/health")
 def health():
     return {"status": "ok", "ollama_cloud": is_cloud()}
+
+
+@app.get("/api/carbon-intensity")
+def carbon_intensity_endpoint(zone: str = "FR"):
+    """Return real-time grid carbon intensity for the given zone."""
+    intensity = get_carbon_intensity(zone)
+    source = "electricity_maps" if __import__("os").environ.get("ELECTRICITY_MAPS_API_KEY") else "fallback"
+    return {"intensity": intensity, "zone": zone, "source": source}
 
 
 @app.get("/api/models")
@@ -147,22 +161,29 @@ async def execute(req: ExecuteRequest):
     import json as _json
     from fastapi.responses import StreamingResponse
 
+    intensity = get_carbon_intensity("FR")
     engine = ExecutionEngine(
         original_prompt=req.original_prompt,
         subtasks=req.subtasks,
         orchestrator_model=req.orchestrator_model,
         user_id=req.user_id,
-        max_workers=8,
+        carbon_intensity=intensity,
+        zone="FR",
     )
-    event_queue = engine.run()
 
     async def event_stream():
-        loop = asyncio.get_event_loop()
-        while True:
-            event = await loop.run_in_executor(None, event_queue.get)
-            if event is None:
-                break
-            yield f"event: {event['event']}\ndata: {_json.dumps(event['data'])}\n\n"
+        # Run the engine as a concurrent background task so we can pull events
+        # from the queue at the same time. No run_in_executor needed — engine
+        # is fully async and never blocks the event loop.
+        runner = asyncio.create_task(engine.run())
+        try:
+            while True:
+                event = await engine.events.get()
+                if event is None:
+                    break
+                yield f"event: {event['event']}\ndata: {_json.dumps(event['data'])}\n\n"
+        finally:
+            runner.cancel()
 
     return StreamingResponse(
         event_stream(),

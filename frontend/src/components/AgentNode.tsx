@@ -1,6 +1,4 @@
-import React, { memo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { type Subtask, type SubtaskExecution } from '@/lib/api';
 import { CategoryBadge } from './CategoryBadge';
@@ -8,12 +6,26 @@ import { CategoryBadge } from './CategoryBadge';
 export type AgentNodeData = Subtask & {
     execution?: SubtaskExecution;
     model_totals?: { input_tokens: number; output_tokens: number; total_cost: number };
+    onExpand?: (id: number) => void;
 } & Record<string, unknown>;
 
 export type AgentNodeProps = NodeProps<Node<AgentNodeData>>;
 
+/** Live ticking timer for running agents */
+function ElapsedTimer() {
+    const start = useRef(Date.now());
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        const iv = setInterval(() => setElapsed(Date.now() - start.current), 100);
+        return () => clearInterval(iv);
+    }, []);
+
+    const secs = (elapsed / 1000).toFixed(1);
+    return <span className="text-[10px] text-[#d97757] font-mono tabular-nums">{secs}s</span>;
+}
+
 function AgentNode({ data }: AgentNodeProps) {
-    const [showOutput, setShowOutput] = useState(false);
     const exec = data.execution;
     const status = exec?.status ?? 'idle';
     const totals = data.model_totals;
@@ -21,21 +33,20 @@ function AgentNode({ data }: AgentNodeProps) {
     const isRunning = status === 'running';
     const isCompleted = status === 'completed';
     const isFailed = status === 'failed';
+    const isIdle = status === 'idle';
 
     return (
         <div
-            className={`rounded-xl border bg-white shadow-sm transition-all select-none ${
+            className={`rounded-xl border bg-white shadow-sm transition-all select-none cursor-pointer group/card ${
                 isRunning
-                    ? 'w-[420px] border-[#d97757]/40 shadow-lg ring-1 ring-[#d97757]/10'
+                    ? 'w-[420px] border-[#d97757]/40 shadow-lg ring-1 ring-[#d97757]/10 hover:shadow-xl'
                     : isCompleted
-                        ? 'w-[420px] border-[#16a34a]/25 shadow-md cursor-pointer'
+                        ? 'w-[420px] border-[#16a34a]/25 shadow-md hover:border-[#16a34a]/40 hover:shadow-lg'
                         : isFailed
-                            ? 'w-[420px] border-red-300 shadow-md'
-                            : 'w-[420px] border-[#e8e5e0] hover:shadow-md hover:border-[#d4d0ca] cursor-pointer'
+                            ? 'w-[420px] border-red-300 shadow-md hover:shadow-lg'
+                            : 'w-[420px] border-[#e8e5e0] hover:shadow-md hover:border-[#d4d0ca]'
             }`}
-            onClick={() => {
-                if (isCompleted && exec?.output) setShowOutput(!showOutput);
-            }}
+            onClick={() => data.onExpand?.(data.id)}
         >
             <Handle
                 type="target"
@@ -82,16 +93,42 @@ function AgentNode({ data }: AgentNodeProps) {
                         }`}>
                             {data.title}
                         </h3>
-                        {isRunning && (
-                            <span className="text-[10px] text-[#d97757] font-medium">Processing...</span>
-                        )}
-                        {isCompleted && exec?.duration != null && (
-                            <span className="text-[10px] text-[#16a34a] font-mono">{exec.duration}s</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {isRunning && (
+                                <>
+                                    <span className="text-[10px] text-[#d97757] font-medium">Processing</span>
+                                    <ElapsedTimer />
+                                </>
+                            )}
+                            {isCompleted && (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {exec?.duration != null && (
+                                        <span className="text-[10px] text-[#16a34a] font-mono">{exec.duration}s</span>
+                                    )}
+                                    {exec?.gco2 != null && (
+                                        <span className="text-[9px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full">
+                                            {exec.gco2.toFixed(5)} gCO₂
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {isFailed && (
+                                <span className="text-[10px] text-red-500 font-medium">Failed</span>
+                            )}
+                            {isIdle && (
+                                <span className="text-[10px] text-[#a8a29e]">Queued</span>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <div className="shrink-0 mt-0.5">
+                <div className="flex items-center gap-2 shrink-0 mt-0.5">
                     <CategoryBadge category={data.category} />
+                    {/* Expand hint icon */}
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center text-[#d4d0ca] group-hover/card:text-[#a8a29e] transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -120,41 +157,48 @@ function AgentNode({ data }: AgentNodeProps) {
             </div>
 
             {/* Description */}
-            <div className="px-4 pb-3 border-t border-[#f0ede8] pt-2.5">
+            <div className="px-4 pb-2.5 border-t border-[#f0ede8] pt-2.5">
                 <p className="text-[12px] text-[#6b6560] leading-relaxed line-clamp-2">
                     {data.description}
                 </p>
             </div>
 
-            {/* Running shimmer */}
+            {/* Running: stream tokens live, fall back to shimmer before first token */}
             {isRunning && (
-                <div className="px-4 pb-3 space-y-1.5">
-                    <div className="h-2 rounded-full shimmer-bg w-full" />
-                    <div className="h-2 rounded-full shimmer-bg w-3/5" />
-                </div>
-            )}
-
-            {/* Failed error */}
-            {isFailed && exec?.error && (
-                <div className="px-4 pb-3 border-t border-red-100 pt-2.5">
-                    <p className="text-[11px] text-red-500 font-mono leading-relaxed">{exec.error}</p>
-                </div>
-            )}
-
-            {/* Completed output */}
-            {isCompleted && exec?.output && (
                 <div className="px-4 pb-3">
-                    {!showOutput ? (
-                        <span className="text-[10px] text-[#16a34a]/70 hover:text-[#16a34a]">
-                            Click to view output
-                        </span>
+                    {exec?.partialOutput ? (
+                        <p className="text-[11px] text-[#6b6560] font-mono leading-relaxed max-h-[80px] overflow-hidden whitespace-pre-wrap">
+                            {exec.partialOutput}
+                            <span className="inline-block w-[2px] h-[11px] bg-[#d97757] ml-0.5 align-middle animate-pulse" />
+                        </p>
                     ) : (
-                        <div className="border-t border-[#f0ede8] pt-2.5 mt-1 max-h-[300px] overflow-y-auto">
-                            <div className="prose-agent text-[11px]">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{exec.output}</ReactMarkdown>
-                            </div>
+                        <div className="space-y-1.5">
+                            <div className="h-2 rounded-full shimmer-bg w-full" />
+                            <div className="h-2 rounded-full shimmer-bg w-3/5" />
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Failed error preview */}
+            {isFailed && exec?.error && (
+                <div className="px-4 pb-3 border-t border-red-100 pt-2.5">
+                    <p className="text-[11px] text-red-500 font-mono leading-relaxed line-clamp-2">{exec.error}</p>
+                </div>
+            )}
+
+            {/* Completed output preview */}
+            {isCompleted && exec?.output && (
+                <div className="px-4 pb-3 border-t border-[#f0ede8] pt-2.5">
+                    <p className="text-[11px] text-[#6b6560] leading-relaxed line-clamp-2 font-mono">
+                        {exec.output.slice(0, 160)}{exec.output.length > 160 ? '…' : ''}
+                    </p>
+                    <span className="text-[10px] text-[#16a34a]/60 mt-1 inline-flex items-center gap-1">
+                        View full output
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </span>
                 </div>
             )}
 

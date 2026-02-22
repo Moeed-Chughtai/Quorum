@@ -18,6 +18,25 @@ export type DecomposeResult = {
   subtasks: Subtask[];
 };
 
+export type CarbonIntensity = {
+  intensity: number;   // gCO2/kWh
+  zone: string;        // e.g. "FR"
+  source: "electricity_maps" | "fallback";
+};
+
+export type CarbonSummary = {
+  pipeline_gco2: number;
+  agent_gco2: number;      // agent routing cost only (excludes synthesis)
+  baseline_gco2: number;   // orchestrator × same agent tokens (the "naive" cost)
+  savings_pct: number;
+  time_savings_pct: number;
+  pipeline_time_s: number;
+  sequential_time_s: number;
+  carbon_intensity: number;
+  zone: string;
+  total_tokens: number;
+};
+
 export async function getModels(): Promise<{
   models: { name: string; size?: number; modified?: string }[];
   source: string;
@@ -28,7 +47,17 @@ export async function getModels(): Promise<{
   return res.json();
 }
 
-const DECOMPOSE_TIMEOUT_MS = 120_000; // 2 min for 2 LLM calls
+export async function getCarbonIntensity(zone = "FR"): Promise<CarbonIntensity> {
+  try {
+    const res = await fetch(`${API_BASE}/api/carbon-intensity?zone=${zone}`);
+    if (!res.ok) throw new Error("failed");
+    return res.json();
+  } catch {
+    return { intensity: 65, zone, source: "fallback" };
+  }
+}
+
+const DECOMPOSE_TIMEOUT_MS = 120_000;
 
 export async function decompose(
   prompt: string,
@@ -84,8 +113,13 @@ export type TaskStatus = "pending" | "running" | "completed" | "failed";
 export type SubtaskExecution = {
   status: TaskStatus;
   output: string | null;
+  partialOutput: string | null;
   error: string | null;
   duration: number | null;
+  gco2: number | null;
+  tokens: number | null;
+  startedAt: number | null;   // seconds since pipeline start (client-tracked)
+  completedAt: number | null; // seconds since pipeline start (client-tracked)
   input_tokens?: number;
   output_tokens?: number;
   input_cost?: number;
@@ -95,12 +129,15 @@ export type SubtaskExecution = {
 
 export type ExecutionCallbacks = {
   onAgentStarted: (data: { id: number; title: string; model: string }) => void;
+  onAgentToken: (data: { id: number; token: string }) => void;
   onAgentCompleted: (data: {
     id: number;
     title: string;
     model: string;
     output: string;
     duration: number;
+    gco2: number;
+    tokens: number;
     input_tokens?: number;
     output_tokens?: number;
     input_cost?: number;
@@ -109,13 +146,24 @@ export type ExecutionCallbacks = {
   }) => void;
   onAgentFailed: (data: { id: number; title: string; error: string }) => void;
   onSynthesizing: () => void;
+  onSynthesisToken: (data: { token: string }) => void;
   onSynthesisComplete: (data: { output: string }) => void;
+  onCarbonUpdate: (data: { total_gco2: number }) => void;
+  onCarbonSummary: (data: CarbonSummary) => void;
+  onBillingRequired?: (data: {
+    user_id: string;
+    subtask_id: number;
+    required_microdollars: number;
+    balance_microdollars: number;
+  }) => void;
+  onWalletUpdated?: (data: { user_id: string; balance_microdollars: number }) => void;
   onError: (error: string) => void;
 };
 
 export function executeSubtasks(
   result: DecomposeResult,
   callbacks: ExecutionCallbacks,
+  options?: { user_id?: string },
 ): AbortController {
   const controller = new AbortController();
 
@@ -126,6 +174,7 @@ export function executeSubtasks(
       original_prompt: result.original_prompt,
       orchestrator_model: result.orchestrator_model,
       subtasks: result.subtasks,
+      user_id: options?.user_id ?? "demo",
     }),
     signal: controller.signal,
   })
@@ -153,6 +202,9 @@ export function executeSubtasks(
                 case "agent_started":
                   callbacks.onAgentStarted(data);
                   break;
+                case "agent_token":
+                  callbacks.onAgentToken(data);
+                  break;
                 case "agent_completed":
                   callbacks.onAgentCompleted(data);
                   break;
@@ -162,8 +214,23 @@ export function executeSubtasks(
                 case "synthesizing":
                   callbacks.onSynthesizing();
                   break;
+                case "synthesis_token":
+                  callbacks.onSynthesisToken(data);
+                  break;
                 case "synthesis_complete":
                   callbacks.onSynthesisComplete(data);
+                  break;
+                case "carbon_update":
+                  callbacks.onCarbonUpdate(data);
+                  break;
+                case "carbon_summary":
+                  callbacks.onCarbonSummary(data);
+                  break;
+                case "billing_required":
+                  callbacks.onBillingRequired?.(data);
+                  break;
+                case "wallet_updated":
+                  callbacks.onWalletUpdated?.(data);
                   break;
               }
               currentEvent = "";
