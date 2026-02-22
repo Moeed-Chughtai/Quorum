@@ -28,7 +28,11 @@ import TopUpModal from "@/components/TopUpModal";
 
 function QuorumLogo({ className }: { className?: string }) {
   return (
-    <img src="/quorum-logo.png" alt="Quorum" className={className ?? "w-13 h-13"} />
+    <img
+      src="/quorum-logo.png"
+      alt="Quorum"
+      className={`shrink-0 max-w-full max-h-full object-contain ${className ?? "w-6 h-6"}`}
+    />
   );
 }
 
@@ -727,7 +731,7 @@ export default function Home() {
                 className="w-10 h-10 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)] flex items-center justify-center text-[var(--accent)]"
                 style={{ animation: "glow-breathe 2.5s ease-in-out infinite" }}
               >
-                <QuorumLogo className="w-13 h-13" />
+                <QuorumLogo className="w-6 h-6" />
               </div>
             </div>
             <div className="h-3 w-32 rounded-full shimmer-bg mb-3" />
