@@ -10,11 +10,11 @@ import { type Subtask, type SubtaskExecution, type CarbonSummary } from '@/lib/a
 // LED 9 W for 1 h: 9 W × 0.475 kgCO₂/kWh world avg = 4.28 gCO₂/h
 // Netflix HD 1 h: IEA 2020 revised estimate ~36 gCO₂/h
 const EQ = {
-    DRIVE_GCO2_PER_KM:    120,
-    PHONE_GCO2:             8,
-    SEARCH_GCO2:          0.3,
-    LED_GCO2_PER_HOUR:   4.28,
-    STREAM_GCO2_PER_HOUR:  36,
+    DRIVE_GCO2_PER_KM: 120,
+    PHONE_GCO2: 8,
+    SEARCH_GCO2: 0.3,
+    LED_GCO2_PER_HOUR: 4.28,
+    STREAM_GCO2_PER_HOUR: 36,
 } as const;
 
 function buildEquivalencies(gco2: number): { icon: string; label: string; value: string }[] {
@@ -27,7 +27,7 @@ function buildEquivalencies(gco2: number): { icon: string; label: string; value:
     items.push({ icon: '📱', label: 'phone charges', value: phoneCharge < 0.1 ? phoneCharge.toFixed(3) : phoneCharge.toFixed(2) });
 
     const driveKm = gco2 / EQ.DRIVE_GCO2_PER_KM;
-    const driveM  = Math.round(driveKm * 1000);
+    const driveM = Math.round(driveKm * 1000);
     items.push({
         icon: '🚗',
         label: driveM < 1000 ? 'm of driving' : 'km of driving',

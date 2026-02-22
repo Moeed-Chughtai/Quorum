@@ -22,10 +22,10 @@ const CH = VH - PT - PB;   // 70
 // ── Colour helpers ────────────────────────────────────────────────────────────
 /** Scale a gCO₂/kWh value to a CSS hex colour for the fill gradient. */
 function intensityHex(v: number): string {
-    if (v < 100)  return '#10b981';
-    if (v < 200)  return '#f59e0b';
-    if (v < 350)  return '#f97316';
-    return              '#ef4444';
+    if (v < 100) return '#10b981';
+    if (v < 200) return '#f59e0b';
+    if (v < 350) return '#f97316';
+    return '#ef4444';
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -67,8 +67,8 @@ export default function GreenWindowScheduler({
     const minI = Math.min(...allPts.map(p => p.intensity));
     const maxI = Math.max(...allPts.map(p => p.intensity));
     const yPad = (maxI - minI) * 0.25 || 10;
-    const yLo  = Math.max(0, minI - yPad * 0.3);
-    const yHi  = maxI + yPad;
+    const yLo = Math.max(0, minI - yPad * 0.3);
+    const yHi = maxI + yPad;
 
     const px = (i: number) => PL + (i / (N - 1)) * CW;
     const py = (v: number) => PT + CH * (1 - (v - yLo) / (yHi - yLo));
@@ -78,7 +78,7 @@ export default function GreenWindowScheduler({
 
     // Green window x-position in the forecast slice
     const gwIdx = gw ? fc.findIndex(p => p.dt === gw.dt) : -1;
-    const gwX   = gwIdx >= 0 ? px(history.length + gwIdx) : null;
+    const gwX = gwIdx >= 0 ? px(history.length + gwIdx) : null;
 
     // ── SVG paths ─────────────────────────────────────────────────────────────
     const { histPath, histFill, fcPath, fcFill } = useMemo(() => {
@@ -86,27 +86,27 @@ export default function GreenWindowScheduler({
             arr.map((p, i) => `${px(offset + i).toFixed(1)},${py(p.intensity).toFixed(1)}`).join(' L ');
 
         const historyStr = pts(history, 0);
-        const fcStr      = pts(fc, history.length);
+        const fcStr = pts(fc, history.length);
 
         const hLast = px(history.length - 1).toFixed(1);
         const fLast = px(history.length + fc.length - 1).toFixed(1);
-        const bot   = (PT + CH).toFixed(1);
+        const bot = (PT + CH).toFixed(1);
 
         const histLine = `M ${PL.toFixed(1)},${py(history[0].intensity).toFixed(1)} L ${historyStr}`;
-        const fcLine   = `M ${px(history.length).toFixed(1)},${py(fc[0].intensity).toFixed(1)} L ${fcStr}`;
+        const fcLine = `M ${px(history.length).toFixed(1)},${py(fc[0].intensity).toFixed(1)} L ${fcStr}`;
 
         return {
             histPath: histLine,
             histFill: `${histLine} L ${hLast},${bot} L ${PL.toFixed(1)},${bot} Z`,
-            fcPath:   fcLine,
-            fcFill:   `${fcLine} L ${fLast},${bot} L ${px(history.length).toFixed(1)},${bot} Z`,
+            fcPath: fcLine,
+            fcFill: `${fcLine} L ${fLast},${bot} L ${px(history.length).toFixed(1)},${bot} Z`,
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [history, fc, yLo, yHi, N]);
 
     // Y-axis ticks
     const range = yHi - yLo;
-    const step  = range > 200 ? 100 : range > 80 ? 50 : range > 30 ? 20 : 10;
+    const step = range > 200 ? 100 : range > 80 ? 50 : range > 30 ? 20 : 10;
     const yTicks: number[] = [];
     for (let v = Math.ceil(yLo / step) * step; v <= yHi; v += step) yTicks.push(v);
 
@@ -123,7 +123,7 @@ export default function GreenWindowScheduler({
             if (i < N) labels.push({ x: px(i), label: `+${h}h` });
         });
         return labels;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nowX, history.length, N]);
 
     const fcColor = intensityHex(current_intensity);
@@ -194,11 +194,10 @@ export default function GreenWindowScheduler({
                     <span className="text-[11px] font-semibold text-[var(--text-primary)]">
                         Grid Carbon Forecast · {zone}
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-mono ${
-                        source === 'electricity_maps'
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-mono ${source === 'electricity_maps'
                             ? 'border-emerald-800/30 text-emerald-500 bg-emerald-950/20'
                             : 'border-[var(--border)] text-[var(--text-tertiary)] bg-[var(--surface-raised)]'
-                    }`}>
+                        }`}>
                         {source === 'electricity_maps' ? 'live data' : 'modelled'}
                     </span>
                 </div>

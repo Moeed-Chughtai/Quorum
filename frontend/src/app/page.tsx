@@ -75,7 +75,7 @@ function Nav({
             <BoltIcon />
           </div>
           <span className="text-[14px] font-semibold tracking-tight text-[var(--nav-text)]">
-            AgentFlow
+            Quorum
           </span>
         </div>
 
@@ -199,16 +199,16 @@ export default function Home() {
   useEffect(() => { loadModels(); }, [loadModels]);
 
   useEffect(() => {
-    getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+    getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => { });
   }, []);
 
   useEffect(() => {
-    getCarbonIntensity("FR").then(setCarbonIntensity).catch(() => {});
+    getCarbonIntensity("FR").then(setCarbonIntensity).catch(() => { });
   }, []);
 
   // Fetch 24 h history + 8 h forecast for green-window scheduling
   useEffect(() => {
-    getCarbonForecast("FR").then(setForecast).catch(() => {});
+    getCarbonForecast("FR").then(setForecast).catch(() => { });
   }, []);
 
   // Countdown ticker — runs only while scheduledAt is set
@@ -297,18 +297,18 @@ export default function Home() {
     setTaskStates(init);
 
     abortRef.current = executeSubtasks(result, {
-      onAgentStarted:      (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], status: "running", startedAt: Date.now() / 1000 - executionStartRef.current } })),
-      onAgentToken:        (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], partialOutput: (p[d.id]?.partialOutput ?? "") + d.token } })),
-      onAgentCompleted:    (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, partialOutput: null, error: null, duration: d.duration, gco2: d.gco2, tokens: d.tokens, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
-      onAgentFailed:       (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "failed", output: null, partialOutput: null, error: d.error, duration: null, gco2: null, tokens: null, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
-      onSynthesizing:      ()  => { setSynthesizing(true); setSynthesisPartial(""); },
-      onSynthesisToken:    (d) => setSynthesisPartial(p => (p ?? "") + d.token),
+      onAgentStarted: (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], status: "running", startedAt: Date.now() / 1000 - executionStartRef.current } })),
+      onAgentToken: (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], partialOutput: (p[d.id]?.partialOutput ?? "") + d.token } })),
+      onAgentCompleted: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, partialOutput: null, error: null, duration: d.duration, gco2: d.gco2, tokens: d.tokens, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
+      onAgentFailed: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "failed", output: null, partialOutput: null, error: d.error, duration: null, gco2: null, tokens: null, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
+      onSynthesizing: () => { setSynthesizing(true); setSynthesisPartial(""); },
+      onSynthesisToken: (d) => setSynthesisPartial(p => (p ?? "") + d.token),
       onSynthesisComplete: (d) => { setSynthesizing(false); setSynthesisPartial(null); setFinalOutput(d.output); setExecuting(false); setExecutionDone(true); },
-      onCarbonUpdate:      (d) => { setTotalCarbon(d.total_gco2); setCarbonTimeSeries(p => [...p, { t: Date.now() / 1000 - executionStartRef.current, actual: d.total_gco2 }]); },
-      onCarbonSummary:     (d) => setCarbonSummary(d),
-      onBillingRequired:   (d) => setError(`Insufficient balance. Need $${(d.required_microdollars / 1e6).toFixed(4)} (balance: $${(d.balance_microdollars / 1e6).toFixed(4)}). Top up to continue.`),
-      onWalletUpdated:     (d) => setWalletBalance(d.balance_microdollars),
-      onError:             (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
+      onCarbonUpdate: (d) => { setTotalCarbon(d.total_gco2); setCarbonTimeSeries(p => [...p, { t: Date.now() / 1000 - executionStartRef.current, actual: d.total_gco2 }]); },
+      onCarbonSummary: (d) => setCarbonSummary(d),
+      onBillingRequired: (d) => setError(`Insufficient balance. Need $${(d.required_microdollars / 1e6).toFixed(4)} (balance: $${(d.balance_microdollars / 1e6).toFixed(4)}). Top up to continue.`),
+      onWalletUpdated: (d) => setWalletBalance(d.balance_microdollars),
+      onError: (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
     }, { user_id: "demo" });
   };
 
@@ -413,11 +413,10 @@ export default function Home() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2.5 text-[12px] font-medium border-b-2 transition-all flex items-center gap-2 ${
-                  isActive
+                className={`px-4 py-2.5 text-[12px] font-medium border-b-2 transition-all flex items-center gap-2 ${isActive
                     ? "border-[var(--accent)] text-[var(--text-primary)]"
                     : "border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-                }`}
+                  }`}
               >
                 {labels[tab]}
                 {badge}
