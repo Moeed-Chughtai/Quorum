@@ -93,6 +93,8 @@ export type CarbonSummary = {
   carbon_intensity: number;
   zone: string;
   total_tokens: number;
+  agents_cost_usd: number;    // actual inference cost for routed agents
+  baseline_cost_usd: number;  // hypothetical 70B single-model cost
 };
 
 export async function getModels(): Promise<{

@@ -79,11 +79,11 @@ function TotalTimer() {
 
 function StatusPill({ status }: { status: string }) {
     const cfg: Record<string, { dot: string; label: string; cls: string }> = {
-        running:   { dot: 'bg-[#d97757] animate-pulse', label: 'Running',   cls: 'text-[#d97757] bg-[#d97757]/8 border-[#d97757]/20' },
-        completed: { dot: 'bg-[#16a34a]',               label: 'Completed', cls: 'text-[#16a34a] bg-[#16a34a]/8 border-[#16a34a]/20' },
-        failed:    { dot: 'bg-red-500',                  label: 'Failed',    cls: 'text-red-500 bg-red-50 border-red-200' },
-        pending:   { dot: 'bg-[#a8a29e]',               label: 'Pending',   cls: 'text-[#a8a29e] bg-[#f5f3f0] border-[#e8e5e0]' },
-        idle:      { dot: 'bg-[#a8a29e]',               label: 'Queued',    cls: 'text-[#a8a29e] bg-[#f5f3f0] border-[#e8e5e0]' },
+        running: { dot: 'bg-[#d97757] animate-pulse', label: 'Running', cls: 'text-[#d97757] bg-[#d97757]/8 border-[#d97757]/20' },
+        completed: { dot: 'bg-[#16a34a]', label: 'Completed', cls: 'text-[#16a34a] bg-[#16a34a]/8 border-[#16a34a]/20' },
+        failed: { dot: 'bg-red-500', label: 'Failed', cls: 'text-red-500 bg-red-50 border-red-200' },
+        pending: { dot: 'bg-[#a8a29e]', label: 'Pending', cls: 'text-[#a8a29e] bg-[#f5f3f0] border-[#e8e5e0]' },
+        idle: { dot: 'bg-[#a8a29e]', label: 'Queued', cls: 'text-[#a8a29e] bg-[#f5f3f0] border-[#e8e5e0]' },
     };
     const { dot, label, cls } = cfg[status] ?? cfg.idle;
     return (
@@ -353,12 +353,11 @@ export default function AgentWorkflow({
                             {/* Model + stats row */}
                             <div className="flex items-center gap-2 mt-3 flex-wrap">
                                 <div className="flex items-center gap-1.5 bg-[#f5f3f0] border border-[#f0ede8] rounded-md px-2.5 py-1.5">
-                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                        selectedExec?.status === 'running' ? 'bg-[#d97757] animate-pulse' :
-                                        selectedExec?.status === 'completed' ? 'bg-[#16a34a]' :
-                                        selectedExec?.status === 'failed' ? 'bg-red-500' :
-                                        'bg-[#a8a29e]'
-                                    }`} />
+                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${selectedExec?.status === 'running' ? 'bg-[#d97757] animate-pulse' :
+                                            selectedExec?.status === 'completed' ? 'bg-[#16a34a]' :
+                                                selectedExec?.status === 'failed' ? 'bg-red-500' :
+                                                    'bg-[#a8a29e]'
+                                        }`} />
                                     <span className="text-[11px] font-mono text-[#6b6560]">{selectedTask.assigned_model}</span>
                                 </div>
                                 {selectedExec?.status === 'completed' && (
@@ -421,12 +420,11 @@ export default function AgentWorkflow({
                                                     onClick={() => setSelectedTaskId(depId)}
                                                     className="flex items-center gap-2 bg-[#f5f3f0] border border-[#e8e5e0] hover:border-[#d97757]/30 hover:bg-[#d97757]/5 rounded-lg px-3 py-2 transition-colors text-left"
                                                 >
-                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                                        depStatus === 'completed' ? 'bg-[#16a34a]' :
-                                                        depStatus === 'running' ? 'bg-[#d97757] animate-pulse' :
-                                                        depStatus === 'failed' ? 'bg-red-500' :
-                                                        'bg-[#a8a29e]'
-                                                    }`} />
+                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${depStatus === 'completed' ? 'bg-[#16a34a]' :
+                                                            depStatus === 'running' ? 'bg-[#d97757] animate-pulse' :
+                                                                depStatus === 'failed' ? 'bg-red-500' :
+                                                                    'bg-[#a8a29e]'
+                                                        }`} />
                                                     <span className="text-[11px] font-mono text-[#a8a29e]">#{String(depId).padStart(2, '0')}</span>
                                                     <span className="text-[12px] text-[#6b6560]">{dep?.title ?? 'Unknown'}</span>
                                                     <svg className="w-3 h-3 text-[#d4d0ca] ml-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

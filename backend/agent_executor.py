@@ -160,6 +160,7 @@ class ExecutionEngine:
         self._zone = zone
         self._total_gco2 = 0.0
         self._total_tokens = 0
+        self._total_cost = 0.0
         self._pipeline_start = time.time()
         self._agents_done_time: float | None = None
 
@@ -340,6 +341,7 @@ class ExecutionEngine:
                 task["gco2"] = gco2
                 self._total_gco2 += gco2
                 self._total_tokens += total_tokens
+                self._total_cost += total_cost
 
             await self.events.put({
                 "event": "agent_completed",
@@ -526,6 +528,11 @@ class ExecutionEngine:
             if bl_gco2 > 0 else 0.0
         )
 
+        # Cost: actual agent cost vs hypothetical 70B cost
+        # 70B pricing: blended rate scaled ×7.213 for datacenter overhead
+        agents_cost_usd = self._total_cost
+        bl_cost_usd = (total_tokens / 1_000_000) * 5.698270  # 0.79 × 7.213
+
         await self.events.put({
             "event": "carbon_summary",
             "data": {
@@ -539,6 +546,8 @@ class ExecutionEngine:
                 "carbon_intensity": round(self._carbon_intensity, 1),
                 "zone": self._zone,
                 "total_tokens": total_tokens,
+                "agents_cost_usd": round(agents_cost_usd, 6),
+                "baseline_cost_usd": round(bl_cost_usd, 6),
             },
         })
 

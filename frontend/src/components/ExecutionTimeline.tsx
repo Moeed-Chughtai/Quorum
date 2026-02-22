@@ -382,6 +382,18 @@ export default function ExecutionTimeline({
                             <span className="text-emerald-600">{breakdown.reduce((s, a) => s + a.gco2, 0).toFixed(5)} gCO₂</span>
                             <span>·</span>
                             <span>{breakdown.length} agents</span>
+                            {carbonSummary && carbonSummary.baseline_cost_usd > 0 && (
+                                <>
+                                    <span>·</span>
+                                    <span className="text-emerald-600">
+                                        ${carbonSummary.agents_cost_usd.toFixed(4)} vs ${carbonSummary.baseline_cost_usd.toFixed(4)} (70B)
+                                    </span>
+                                    <span>·</span>
+                                    <span className="text-emerald-600 font-semibold">
+                                        saved ${Math.max(0, carbonSummary.baseline_cost_usd - carbonSummary.agents_cost_usd).toFixed(4)}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
