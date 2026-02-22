@@ -184,12 +184,12 @@ export default function ExecutionTimeline({
                                 <div className="w-5 h-[2px] bg-emerald-500 rounded-full" />
                                 <span className="text-[9px] text-[var(--text-tertiary)]">Actual (routed)</span>
                             </div>
-                            {baselineCo2 && (
+                            {baselineCo2 != null && (
                                 <div className="flex items-center gap-1.5">
                                     <svg width="20" height="4" style={{ overflow: 'visible' }}>
                                         <line x1="0" y1="2" x2="20" y2="2" stroke="#d97757" strokeWidth="1.5" strokeDasharray="4,3" />
                                     </svg>
-                                    <span className="text-[9px] text-[var(--text-tertiary)]">{carbonSummary?.baseline_model_display ?? "Frontier baseline"}</span>
+                                    <span className="text-[9px] text-[var(--text-tertiary)]">70B baseline</span>
                                 </div>
                             )}
                         </div>
@@ -231,14 +231,14 @@ export default function ExecutionTimeline({
                         <line x1={PL} y1={PT} x2={PL} y2={PT + CH} stroke="#e8e5e0" strokeWidth="0.75" />
                         <line x1={PL} y1={PT + CH} x2={VW - PR} y2={PT + CH} stroke="#e8e5e0" strokeWidth="0.75" />
 
-                        {/* Baseline dashed line */}
+                        {/* 70B baseline dashed line */}
                         {baselineY != null && (
                             <>
                                 <line x1={PL} y1={baselineY} x2={VW - PR} y2={baselineY}
                                     stroke="#d97757" strokeWidth="1.2" strokeDasharray="5,4" opacity="0.55" />
                                 <text x={PL + 3} y={baselineY - 4} textAnchor="start"
                                     fontSize="7.5" fill="#d97757" opacity="0.85" fontFamily="ui-sans-serif,sans-serif,system-ui">
-                                    {carbonSummary?.baseline_model_display ?? "Frontier baseline"}
+                                    70B baseline
                                 </text>
                             </>
                         )}
@@ -283,14 +283,14 @@ export default function ExecutionTimeline({
                         {/* CO₂ saved */}
                         <div className="bg-white rounded-xl border border-emerald-100 px-5 py-4 shadow-sm">
                             <div className="text-[9px] uppercase tracking-[0.15em] text-emerald-700 font-semibold mb-1.5">
-                                CO₂ Saved · Agent Routing
+                                CO₂ Saved · vs 70B Baseline
                             </div>
                             <div className="text-[40px] font-light text-emerald-600 tabular-nums leading-none animate-count">
                                 {carbonSummary.savings_pct.toFixed(1)}<span className="text-[18px]">%</span>
                             </div>
                             <div className="mt-3 space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-[#d97757] w-14 shrink-0">Frontier</span>
+                                    <span className="text-[8px] font-mono text-[#d97757] w-14 shrink-0">70B</span>
                                     <div className="flex-1 h-2 bg-[#d97757]/10 rounded-full overflow-hidden">
                                         <div className="h-full bg-[#d97757]/45 rounded-full w-full" />
                                     </div>
@@ -300,9 +300,9 @@ export default function ExecutionTimeline({
                                     <span className="text-[8px] font-mono text-emerald-600 w-14 shrink-0">Agents</span>
                                     <div className="flex-1 h-2 bg-emerald-50 rounded-full overflow-hidden">
                                         <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
-                                            style={{ width: `${(carbonSummary.agent_gco2 / carbonSummary.baseline_gco2) * 100}%` }} />
+                                            style={{ width: `${(carbonSummary.pipeline_gco2 / carbonSummary.baseline_gco2) * 100}%` }} />
                                     </div>
-                                    <span className="text-[8px] font-mono text-emerald-600 tabular-nums">{carbonSummary.agent_gco2.toFixed(4)}g</span>
+                                    <span className="text-[8px] font-mono text-emerald-600 tabular-nums">{carbonSummary.pipeline_gco2.toFixed(4)}g</span>
                                 </div>
                             </div>
                         </div>
@@ -317,7 +317,7 @@ export default function ExecutionTimeline({
                             </div>
                             <div className="mt-3 space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] w-14 shrink-0">Frontier</span>
+                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] w-14 shrink-0">Sequential</span>
                                     <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
                                         <div className="h-full bg-[var(--text-tertiary)]/35 rounded-full w-full" />
                                     </div>
@@ -423,7 +423,7 @@ export default function ExecutionTimeline({
 
                             {/* Savings equivalency */}
                             {carbonSummary.savings_pct > 0 && (() => {
-                                const savedGco2 = Math.max(0, carbonSummary.baseline_gco2 - carbonSummary.agent_gco2);
+                                const savedGco2 = Math.max(0, carbonSummary.baseline_gco2 - carbonSummary.pipeline_gco2);
                                 if (savedGco2 < 0.0001) return null;
                                 const savedKm = savedGco2 / EQ.DRIVE_GCO2_PER_KM * 1000; // metres
                                 const savedSearches = savedGco2 / EQ.SEARCH_GCO2;

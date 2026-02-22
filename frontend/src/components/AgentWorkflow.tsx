@@ -560,10 +560,10 @@ export default function AgentWorkflow({
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
                                     <div className="bg-white rounded-xl border border-emerald-100 px-4 py-3 shadow-sm">
-                                        <div className="text-[9px] uppercase tracking-wider text-emerald-600 font-semibold mb-1">CO₂ Saved · Agent Routing</div>
+                                        <div className="text-[9px] uppercase tracking-wider text-emerald-600 font-semibold mb-1">CO₂ Saved · vs 70B</div>
                                         <div className="text-[26px] font-light text-emerald-600 tabular-nums leading-none">{carbonSummary.savings_pct.toFixed(1)}<span className="text-[14px] ml-0.5">%</span></div>
                                         <div className="text-[9px] text-[#a8a29e] font-mono mt-1">
-                                            {carbonSummary.agent_gco2.toFixed(5)} vs {carbonSummary.baseline_gco2.toFixed(5)} gCO₂
+                                            {carbonSummary.pipeline_gco2.toFixed(5)} vs {carbonSummary.baseline_gco2.toFixed(5)} gCO₂
                                         </div>
                                     </div>
                                     <div className="bg-white rounded-xl border border-[#d97757]/15 px-4 py-3 shadow-sm">
@@ -579,7 +579,7 @@ export default function AgentWorkflow({
                                     <span className="text-[#e8e5e0]">·</span>
                                     <span className="text-emerald-600 font-medium">{carbonSummary.agent_gco2.toFixed(5)} gCO₂ routed agents</span>
                                     <span className="text-[#e8e5e0]">·</span>
-                                    <span>orchestrator baseline: {carbonSummary.baseline_gco2.toFixed(5)} gCO₂</span>
+                                    <span>70B baseline: {carbonSummary.baseline_gco2.toFixed(5)} gCO₂</span>
                                 </div>
                             </div>
                         )}

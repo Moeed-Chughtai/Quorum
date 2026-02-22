@@ -85,7 +85,7 @@ export type CarbonForecast = {
 export type CarbonSummary = {
   pipeline_gco2: number;
   agent_gco2: number;      // agent routing cost only (excludes synthesis)
-  baseline_gco2: number;   // Claude model baseline carbon cost
+  baseline_gco2: number;   // 70B single-model baseline carbon cost
   savings_pct: number;
   time_savings_pct: number;
   pipeline_time_s: number;
@@ -93,23 +93,7 @@ export type CarbonSummary = {
   carbon_intensity: number;
   zone: string;
   total_tokens: number;
-  baseline_model?: string;         // Frontier model ID used as baseline (Claude or Gemini)
-  baseline_model_display?: string; // Human-readable frontier model name
 };
-
-export type ClaudeComparison = {
-  model: string;
-  model_display: string;
-  output: string;
-  input_tokens: number;
-  output_tokens: number;
-  cost_usd: number;
-  duration_s: number;
-  gco2: number;
-};
-
-// Alias for backwards compatibility
-export type FrontierComparison = ClaudeComparison;
 
 export async function getModels(): Promise<{
   models: { name: string; size?: number; modified?: string }[];
@@ -117,40 +101,6 @@ export async function getModels(): Promise<{
   error?: string;
 }> {
   const res = await fetch(`${API_BASE}/api/models`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export type ClaudeModel = {
-  id: string;
-  display_name: string;
-};
-
-export type FrontierModel = {
-  id: string;
-  display_name: string;
-  provider: "anthropic" | "openrouter";
-  supports_images?: boolean;
-};
-
-export async function getClaudeModels(): Promise<{
-  models: ClaudeModel[];
-  default: string;
-}> {
-  const res = await fetch(`${API_BASE}/api/claude-models`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function getFrontierModels(): Promise<{
-  models: FrontierModel[];
-  default: string;
-  providers: {
-    anthropic: { name: string; default: string };
-    openrouter: { name: string; default: string };
-  };
-}> {
-  const res = await fetch(`${API_BASE}/api/frontier-models`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -240,15 +190,13 @@ export type ExecutionCallbacks = {
   onSynthesisComplete: (data: { output: string }) => void;
   onCarbonUpdate: (data: { total_gco2: number }) => void;
   onCarbonSummary: (data: CarbonSummary) => void;
-  onClaudeComparison?: (data: ClaudeComparison) => void;
-  onFrontierComparison?: (data: FrontierComparison) => void;
   onError: (error: string) => void;
 };
 
 export function executeSubtasks(
   result: DecomposeResult,
   callbacks: ExecutionCallbacks,
-  options?: { user_id?: string; claude_model?: string; frontier_model?: string },
+  options?: { user_id?: string },
 ): AbortController {
   const controller = new AbortController();
 
@@ -260,8 +208,6 @@ export function executeSubtasks(
       orchestrator_model: result.orchestrator_model,
       subtasks: result.subtasks,
       user_id: options?.user_id ?? "demo",
-      // Use frontier_model if provided, fallback to claude_model for backwards compat
-      frontier_model: options?.frontier_model || options?.claude_model,
     }),
     signal: controller.signal,
   })
@@ -318,14 +264,6 @@ export function executeSubtasks(
                   break;
                 case "carbon_summary":
                   callbacks.onCarbonSummary(data);
-                  break;
-                case "claude_comparison":
-                  callbacks.onClaudeComparison?.(data);
-                  break;
-                case "frontier_comparison":
-                  // Call both for backwards compatibility
-                  callbacks.onFrontierComparison?.(data);
-                  callbacks.onClaudeComparison?.(data);
                   break;
               }
               currentEvent = "";
