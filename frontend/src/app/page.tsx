@@ -26,11 +26,9 @@ import TopUpModal from "@/components/TopUpModal";
 /* Icons                                                               */
 /* ------------------------------------------------------------------ */
 
-function BoltIcon() {
+function QuorumLogo({ className }: { className?: string }) {
   return (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-    </svg>
+    <img src="/quorum-logo.png" alt="Quorum" className={className ?? "w-13 h-13"} />
   );
 }
 
@@ -75,8 +73,8 @@ function Nav({
     <nav className="shrink-0 bg-[var(--nav-bg)] border-b border-[var(--nav-border)]">
       <div className="max-w-full px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-md bg-[var(--accent)] flex items-center justify-center text-white">
-            <BoltIcon />
+          <div className="w-6 h-6 rounded-md flex items-center justify-center">
+            <QuorumLogo className="w-6 h-6" />
           </div>
           <span className="text-[14px] font-semibold tracking-tight text-[var(--nav-text)]">
             Quorum
@@ -587,8 +585,8 @@ export default function Home() {
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-10 h-10 rounded-xl border border-[var(--border)] flex items-center justify-center mx-auto mb-3 text-[var(--text-tertiary)]">
-                    <BoltIcon />
+                  <div className="w-10 h-10 rounded-xl border border-[var(--border)] flex items-center justify-center mx-auto mb-3">
+                    <QuorumLogo className="w-5 h-5" />
                   </div>
                   <p className="text-[13px] text-[var(--text-tertiary)]">No output yet</p>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-1 opacity-60">Execute agents in the Graph tab to generate output</p>
@@ -702,7 +700,7 @@ export default function Home() {
                         </>
                       ) : (
                         <>
-                          <BoltIcon />
+                          <QuorumLogo />
                           Decompose
                         </>
                       )}
@@ -729,7 +727,7 @@ export default function Home() {
                 className="w-10 h-10 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)] flex items-center justify-center text-[var(--accent)]"
                 style={{ animation: "glow-breathe 2.5s ease-in-out infinite" }}
               >
-                <BoltIcon />
+                <QuorumLogo className="w-13 h-13" />
               </div>
             </div>
             <div className="h-3 w-32 rounded-full shimmer-bg mb-3" />
