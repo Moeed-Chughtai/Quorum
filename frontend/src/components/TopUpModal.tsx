@@ -223,11 +223,10 @@ export default function TopUpModal({
                   <button
                     key={p}
                     onClick={() => setAmount(String(p))}
-                    className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${
-                      amount === String(p)
+                    className={`flex-1 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${amount === String(p)
                         ? "border-emerald-500 bg-emerald-500/15 text-emerald-400"
                         : "border-[#2e2a26] text-[#a8a29e] hover:border-[#4a4540] hover:text-white"
-                    }`}
+                      }`}
                   >
                     ${p}
                   </button>

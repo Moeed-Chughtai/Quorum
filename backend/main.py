@@ -23,6 +23,8 @@ import stripe
 from billing_db import init_billing_db
 from billing_ledger import record_topup_credit, get_wallet_balance_microdollars
 from billing_stripe import configure_stripe, webhook_secret
+from claude_client import get_default_claude_model, get_available_claude_models
+from openrouter_client import get_default_gemini_model, get_available_gemini_models
 from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
@@ -56,6 +58,8 @@ class ExecuteRequest(BaseModel):
     subtasks: list[dict]
     orchestrator_model: str = "gemma3:12b"
     user_id: str = "demo"
+    claude_model: str | None = None  # Deprecated: use frontier_model instead
+    frontier_model: str | None = None  # Claude or Gemini model (detected by prefix)
 
 
 class BillingCreateCustomerRequest(BaseModel):
@@ -191,6 +195,46 @@ def list_models():
         return {"models": [], "source": source, "error": msg}
 
 
+@app.get("/api/claude-models")
+def list_claude_models():
+    """List available Claude frontier models for comparison."""
+    return {
+        "models": get_available_claude_models(),
+        "default": get_default_claude_model(),
+    }
+
+
+@app.get("/api/gemini-models")
+def list_gemini_models():
+    """List available Gemini frontier models for comparison via OpenRouter."""
+    return {
+        "models": get_available_gemini_models(),
+        "default": get_default_gemini_model(),
+    }
+
+
+@app.get("/api/frontier-models")
+def list_frontier_models():
+    """List all available frontier models (Claude + Gemini) for comparison."""
+    claude_models = get_available_claude_models()
+    gemini_models = get_available_gemini_models()
+    
+    # Add provider field to each model
+    for m in claude_models:
+        m["provider"] = "anthropic"
+    for m in gemini_models:
+        m["provider"] = "openrouter"
+    
+    return {
+        "models": claude_models + gemini_models,
+        "default": get_default_claude_model(),  # Default to Claude Sonnet
+        "providers": {
+            "anthropic": {"name": "Anthropic (Claude)", "default": get_default_claude_model()},
+            "openrouter": {"name": "Google (Gemini via OpenRouter)", "default": get_default_gemini_model()},
+        },
+    }
+
+
 @app.post("/api/decompose")
 def decompose(req: DecomposeRequest):
     """Decompose a high-level task into subtasks and route each to the best agent."""
@@ -205,6 +249,10 @@ def decompose(req: DecomposeRequest):
 async def execute(req: ExecuteRequest):
     """Execute all subtasks via their assigned agents, streaming progress as SSE."""
     intensity = get_carbon_intensity("FR")
+    
+    # Support both new frontier_model and legacy claude_model parameter
+    frontier_model = req.frontier_model or req.claude_model
+    
     engine = ExecutionEngine(
         original_prompt=req.original_prompt,
         subtasks=req.subtasks,
@@ -212,6 +260,7 @@ async def execute(req: ExecuteRequest):
         user_id=req.user_id,
         carbon_intensity=intensity,
         zone="FR",
+        frontier_model=frontier_model,
     )
 
     async def event_stream():

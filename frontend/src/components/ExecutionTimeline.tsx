@@ -189,7 +189,7 @@ export default function ExecutionTimeline({
                                     <svg width="20" height="4" style={{ overflow: 'visible' }}>
                                         <line x1="0" y1="2" x2="20" y2="2" stroke="#d97757" strokeWidth="1.5" strokeDasharray="4,3" />
                                     </svg>
-                                    <span className="text-[9px] text-[var(--text-tertiary)]">70B baseline</span>
+                                    <span className="text-[9px] text-[var(--text-tertiary)]">{carbonSummary?.baseline_model_display ?? "Frontier baseline"}</span>
                                 </div>
                             )}
                         </div>
@@ -238,7 +238,7 @@ export default function ExecutionTimeline({
                                     stroke="#d97757" strokeWidth="1.2" strokeDasharray="5,4" opacity="0.55" />
                                 <text x={VW - PR - 3} y={baselineY - 4} textAnchor="end"
                                     fontSize="7.5" fill="#d97757" opacity="0.55" fontFamily="ui-sans-serif,sans-serif,system-ui">
-                                    70B baseline
+                                    {carbonSummary?.baseline_model_display ?? "Frontier baseline"}
                                 </text>
                             </>
                         )}

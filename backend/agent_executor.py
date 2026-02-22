@@ -22,6 +22,20 @@ from carbon_tracker import (
     get_carbon_intensity,
 )
 from billing_ledger import record_usage_debit
+from claude_client import (
+    call_claude,
+    is_claude_available,
+    estimate_claude_baseline_gco2,
+    get_claude_display_name,
+    get_default_claude_model,
+)
+from openrouter_client import (
+    call_gemini,
+    is_gemini_available,
+    estimate_gemini_baseline_gco2,
+    get_gemini_display_name,
+    get_default_gemini_model,
+)
 
 # ---------------------------------------------------------------------------
 # Category-specific system prompts
@@ -145,10 +159,16 @@ class ExecutionEngine:
         user_id: str = "demo",
         carbon_intensity: float | None = None,
         zone: str = "FR",
+        frontier_model: str | None = None,
     ):
         self.original_prompt = original_prompt
         self.orchestrator_model = orchestrator_model
         self.user_id = user_id
+        
+        # Determine frontier model and provider
+        self.frontier_model = frontier_model or get_default_claude_model()
+        self.frontier_provider = self._get_provider(self.frontier_model)
+        
         self.tasks: dict[int, dict] = {}
         self.dependents: dict[int, list[int]] = defaultdict(list)
         self.events: asyncio.Queue = asyncio.Queue()
@@ -161,6 +181,9 @@ class ExecutionEngine:
         self._total_tokens = 0
         self._pipeline_start = time.time()
         self._agents_done_time: float | None = None
+        
+        # Frontier model comparison result (populated during run)
+        self._frontier_result: dict | None = None
 
         # One asyncio.Event per task — set when the task finishes (any outcome).
         self._done: dict[int, asyncio.Event] = {}
@@ -179,6 +202,34 @@ class ExecutionEngine:
             self._done[st["id"]] = asyncio.Event()
             for dep_id in st.get("depends_on", []):
                 self.dependents[dep_id].append(st["id"])
+
+    # ------------------------------------------------------------------
+    # Helper methods
+    # ------------------------------------------------------------------
+
+    def _get_provider(self, model: str) -> str:
+        """Determine the provider based on model ID prefix."""
+        if model.startswith("google/"):
+            return "openrouter"
+        elif model.startswith("claude-"):
+            return "anthropic"
+        else:
+            # Default to anthropic for backwards compatibility
+            return "anthropic"
+
+    def _get_frontier_display_name(self, model: str) -> str:
+        """Get display name for a frontier model."""
+        if self._get_provider(model) == "openrouter":
+            return get_gemini_display_name(model)
+        else:
+            return get_claude_display_name(model)
+
+    def _is_frontier_available(self) -> bool:
+        """Check if the configured frontier model API is available."""
+        if self.frontier_provider == "openrouter":
+            return is_gemini_available()
+        else:
+            return is_claude_available()
 
     # ------------------------------------------------------------------
     # Agent prompt construction
@@ -501,7 +552,7 @@ class ExecutionEngine:
         )
 
         # ------------------------------------------------------------------
-        # Carbon: compare routed agents vs orchestrator handling every subtask.
+        # Carbon: compare routed agents vs Claude handling the entire task.
         # Use real GPU duration for synthesis CO2 when Ollama provided it.
         # ------------------------------------------------------------------
         agent_gco2 = self._total_gco2
@@ -516,8 +567,17 @@ class ExecutionEngine:
             )
         pipeline_gco2 = agent_gco2 + synth_gco2
 
-        # Baseline: orchestrator doing each subtask with the same token counts
-        bl_gco2 = estimate_gco2(self.orchestrator_model, agent_tokens, self._carbon_intensity)
+        # Baseline: Frontier model handling the entire task with the same token count
+        # Use actual frontier result if available, otherwise estimate
+        if self._frontier_result and self._frontier_result.get("gco2"):
+            bl_gco2 = self._frontier_result["gco2"]
+        else:
+            # Estimate based on provider
+            if self.frontier_provider == "openrouter":
+                bl_gco2 = estimate_gemini_baseline_gco2(self.frontier_model, agent_tokens)
+            else:
+                bl_gco2 = estimate_claude_baseline_gco2(self.frontier_model, agent_tokens)
+        
         savings_pct = (
             max(0.0, (bl_gco2 - agent_gco2) / bl_gco2 * 100)
             if bl_gco2 > 0 else 0.0
@@ -538,8 +598,71 @@ class ExecutionEngine:
                 "carbon_intensity": round(self._carbon_intensity, 1),
                 "zone": self._zone,
                 "total_tokens": total_tokens,
+                "baseline_model": self.frontier_model,
+                "baseline_model_display": self._get_frontier_display_name(self.frontier_model),
             },
         })
+        
+        # Emit frontier comparison if we have a result
+        if self._frontier_result:
+            await self.events.put({
+                "event": "frontier_comparison",
+                "data": self._frontier_result,
+            })
+
+    # ------------------------------------------------------------------
+    # Frontier model comparison
+    # ------------------------------------------------------------------
+
+    def _build_frontier_system_prompt(self) -> str:
+        """Build system prompt for frontier model comparison (mirrors agent prompts)."""
+        persona = _AGENT_PERSONAS["general"]
+        return (
+            f"{persona}\n\n"
+            "You are answering a user request directly. "
+            "Be thorough, actionable, and well-structured.\n\n"
+            "Formatting rules (strict):\n"
+            "- NEVER use emojis or emoticons of any kind.\n"
+            "- NEVER use em dashes or en dashes. Use commas, periods, or semicolons instead.\n"
+            "- Write in plain, clean prose."
+        )
+
+    async def _run_frontier_comparison(self) -> None:
+        """Call frontier API (Claude or Gemini) with the same prompt for comparison."""
+        if not self.frontier_model or not self._is_frontier_available():
+            return
+        
+        system_prompt = self._build_frontier_system_prompt()
+        
+        try:
+            if self.frontier_provider == "openrouter":
+                result = await call_gemini(
+                    model=self.frontier_model,
+                    prompt=self.original_prompt,
+                    max_tokens=4096,
+                    system_prompt=system_prompt,
+                )
+            else:
+                result = await call_claude(
+                    model=self.frontier_model,
+                    prompt=self.original_prompt,
+                    max_tokens=4096,
+                    system_prompt=system_prompt,
+                )
+            self._frontier_result = result
+        except Exception as e:
+            # Log but don't fail the pipeline
+            self._frontier_result = {
+                "model": self.frontier_model,
+                "model_display": self._get_frontier_display_name(self.frontier_model),
+                "output": f"Frontier comparison failed: {e}",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cost_usd": 0.0,
+                "duration_s": 0.0,
+                "gco2": 0.0,
+                "error": str(e),
+            }
 
     # ------------------------------------------------------------------
     # Public API
@@ -547,6 +670,10 @@ class ExecutionEngine:
 
     async def run(self) -> None:
         """Launch all tasks concurrently. Each task self-blocks on its own deps."""
-        await asyncio.gather(*[self._run_task(tid) for tid in self.tasks])
+        # Run agents and frontier comparison in parallel
+        await asyncio.gather(
+            asyncio.gather(*[self._run_task(tid) for tid in self.tasks]),
+            self._run_frontier_comparison(),
+        )
         self._agents_done_time = time.time()
         await self._synthesise()

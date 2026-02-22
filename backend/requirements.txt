@@ -4,3 +4,5 @@ ollama==0.4.3
 python-dotenv==1.0.1
 numpy
 stripe
+anthropic
+httpx

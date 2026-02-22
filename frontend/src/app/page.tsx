@@ -8,6 +8,7 @@ import {
   getWalletBalance,
   getCarbonIntensity,
   getCarbonForecast,
+  getFrontierModels,
   decompose,
   executeSubtasks,
   type DecomposeResult,
@@ -15,6 +16,8 @@ import {
   type CarbonIntensity,
   type CarbonSummary,
   type CarbonForecast,
+  type ClaudeComparison,
+  type FrontierModel,
 } from "@/lib/api";
 import AgentWorkflow from "@/components/AgentWorkflow";
 import ExecutionTimeline from "@/components/ExecutionTimeline";
@@ -160,6 +163,11 @@ export default function Home() {
   const [carbonSummary, setCarbonSummary] = useState<CarbonSummary | null>(null);
   const [carbonTimeSeries, setCarbonTimeSeries] = useState<Array<{ t: number; actual: number }>>([]);
 
+  // Claude comparison
+  const [claudeComparison, setClaudeComparison] = useState<ClaudeComparison | null>(null);
+  const [frontierModels, setFrontierModels] = useState<FrontierModel[]>([]);
+  const [selectedFrontierModel, setSelectedFrontierModel] = useState<string>("");
+
   // Tab state
   const [activeTab, setActiveTab] = useState<TabId>("graph");
   const [shortcutMod, setShortcutMod] = useState("Ctrl"); // stable for SSR; updated in useEffect
@@ -215,6 +223,14 @@ export default function Home() {
 
   useEffect(() => {
     getCarbonIntensity("FR").then(setCarbonIntensity).catch(() => { });
+  }, []);
+
+  // Fetch frontier models (Claude + Gemini) for comparison selector
+  useEffect(() => {
+    getFrontierModels().then(data => {
+      setFrontierModels(data.models);
+      setSelectedFrontierModel(data.default);
+    }).catch(() => { });
   }, []);
 
   // Fetch 24 h history + 8 h forecast for green-window scheduling
@@ -279,6 +295,7 @@ export default function Home() {
     setTotalCarbon(0);
     setCarbonSummary(null);
     setCarbonTimeSeries([]);
+    setClaudeComparison(null);
     setActiveTab("graph");
     setLoadingMessage("Decomposing...");
     const t = setTimeout(() => setLoadingMessage("Still working — models are thinking..."), 18_000);
@@ -305,6 +322,7 @@ export default function Home() {
     setTotalCarbon(0);
     setCarbonSummary(null);
     setCarbonTimeSeries([]);
+    setClaudeComparison(null);
     setError(null);
     const init: Record<number, SubtaskExecution> = {};
     for (const st of result.subtasks)
@@ -321,10 +339,11 @@ export default function Home() {
       onSynthesisComplete: (d) => { setSynthesizing(false); setSynthesisPartial(null); setFinalOutput(d.output); setExecuting(false); setExecutionDone(true); },
       onCarbonUpdate: (d) => { setTotalCarbon(d.total_gco2); setCarbonTimeSeries(p => [...p, { t: Date.now() / 1000 - executionStartRef.current, actual: d.total_gco2 }]); },
       onCarbonSummary: (d) => setCarbonSummary(d),
+      onClaudeComparison: (d) => setClaudeComparison(d),
       onBillingRequired: (d) => setError(`Insufficient balance. Need $${(d.required_microdollars / 1e6).toFixed(4)} (balance: $${(d.balance_microdollars / 1e6).toFixed(4)}). Top up to continue.`),
       onWalletUpdated: (d) => setWalletBalance(d.balance_microdollars),
       onError: (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
-    }, { user_id: "demo" });
+    }, { user_id: "demo", frontier_model: selectedFrontierModel || undefined });
   };
 
   const handleCancel = () => {
@@ -344,6 +363,7 @@ export default function Home() {
     setTotalCarbon(0);
     setCarbonSummary(null);
     setCarbonTimeSeries([]);
+    setClaudeComparison(null);
     setScheduledAt(null);
     setCountdownStr(null);
     setError(null);
@@ -513,8 +533,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Output tab */}
-          <div className={`h-full overflow-auto ${activeTab === "output" ? "" : "hidden"}`}>
+          {/* Output tab - Split view: Quorum agents vs Claude */}
+          <div className={`h-full overflow-hidden ${activeTab === "output" ? "" : "hidden"}`}>
             {synthesizing ? (
               <div className="max-w-3xl mx-auto px-8 py-10">
                 <div className="flex items-center gap-2 mb-6" style={{ color: "var(--accent)" }}>
@@ -528,10 +548,64 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            ) : finalOutput ? (
-              <div className="max-w-3xl mx-auto px-8 py-10">
-                <div className="prose-output text-[13.5px] leading-[1.9]" style={{ color: "var(--text-primary)" }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalOutput}</ReactMarkdown>
+            ) : finalOutput || claudeComparison ? (
+              <div className="h-full flex">
+                {/* Left panel: Quorum Agent Output */}
+                <div className="flex-1 border-r border-[var(--border)] overflow-auto">
+                  <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <h3 className="text-[12px] font-semibold text-[var(--text-primary)]">Quorum Agents</h3>
+                    </div>
+                    {carbonSummary && (
+                      <div className="mt-2 flex flex-wrap gap-3 text-[10px] font-mono">
+                        <span className="text-emerald-400">{carbonSummary.pipeline_gco2.toFixed(4)} gCO₂</span>
+                        <span className="text-[var(--text-tertiary)]">{carbonSummary.pipeline_time_s.toFixed(1)}s</span>
+                        <span className="text-[var(--text-tertiary)]">{carbonSummary.total_tokens} tokens</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-6 py-6">
+                    {finalOutput ? (
+                      <div className="prose-output text-[13px] leading-[1.8]" style={{ color: "var(--text-primary)" }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalOutput}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-[12px] text-[var(--text-tertiary)]">Waiting for agent output...</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right panel: Frontier Model Comparison */}
+                <div className="flex-1 overflow-auto" style={{ background: "var(--surface-raised)" }}>
+                  <div className="px-6 py-4 border-b border-[var(--border)]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <h3 className="text-[12px] font-semibold text-[var(--text-primary)]">
+                        {claudeComparison?.model_display ?? "Frontier Model"}
+                      </h3>
+                    </div>
+                    {claudeComparison && (
+                      <div className="mt-2 flex flex-wrap gap-3 text-[10px] font-mono">
+                        <span className="text-amber-400">{claudeComparison.gco2.toFixed(4)} gCO₂</span>
+                        <span className="text-[var(--text-tertiary)]">{claudeComparison.duration_s.toFixed(1)}s</span>
+                        <span className="text-[var(--text-tertiary)]">${claudeComparison.cost_usd.toFixed(4)}</span>
+                        <span className="text-[var(--text-tertiary)]">{claudeComparison.input_tokens + claudeComparison.output_tokens} tokens</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-6 py-6">
+                    {claudeComparison ? (
+                      <div className="prose-output text-[13px] leading-[1.8]" style={{ color: "var(--text-primary)" }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{claudeComparison.output}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
+                        <span className="w-3 h-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+                        <span>Running Claude comparison...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -552,7 +626,7 @@ export default function Home() {
           open={topUpOpen}
           onClose={() => {
             setTopUpOpen(false);
-            getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+            getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => { });
           }}
           onBalanceUpdated={(b) => setWalletBalance(b)}
         />
@@ -625,6 +699,26 @@ export default function Home() {
                 />
                 <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 border-t border-[var(--border-subtle)] bg-[var(--surface-raised)]/60 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
+                    {/* Frontier model selector (Claude + Gemini) */}
+                    {frontierModels.length > 0 && (
+                      <select
+                        value={selectedFrontierModel}
+                        onChange={(e) => setSelectedFrontierModel(e.target.value)}
+                        className="bg-[var(--surface)] text-[10px] text-emerald-500 border border-emerald-500/30 rounded-md px-2 py-1 outline-none cursor-pointer hover:border-emerald-400 transition-colors max-w-[140px] truncate"
+                        title="Frontier model for comparison"
+                      >
+                        <optgroup label="Anthropic (Claude)">
+                          {frontierModels.filter(m => m.provider === "anthropic").map((m) => (
+                            <option key={m.id} value={m.id}>{m.display_name}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Google (Gemini)">
+                          {frontierModels.filter(m => m.provider === "openrouter").map((m) => (
+                            <option key={m.id} value={m.id}>{m.display_name}</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    )}
                     <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
                       {input.length > 0
                         ? (() => {
@@ -707,7 +801,7 @@ export default function Home() {
         open={topUpOpen}
         onClose={() => {
           setTopUpOpen(false);
-          getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+          getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => { });
         }}
         onBalanceUpdated={(b) => setWalletBalance(b)}
       />

@@ -255,6 +255,84 @@
         "input": 0.15,
         "output": 0.45
       }
+    },
+    {
+      "model": "claude-opus-4-5-20251101",
+      "specialization": "Most intelligent frontier model for complex reasoning and coding",
+      "pricing_per_1m_tokens": {
+        "input": 5.00,
+        "output": 25.00
+      }
+    },
+    {
+      "model": "claude-sonnet-4-5-20241022",
+      "specialization": "Best balance of speed and intelligence",
+      "pricing_per_1m_tokens": {
+        "input": 3.00,
+        "output": 15.00
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "specialization": "Fastest near-frontier model",
+      "pricing_per_1m_tokens": {
+        "input": 1.00,
+        "output": 5.00
+      }
+    },
+    {
+      "model": "google/gemini-2.5-pro",
+      "specialization": "Advanced reasoning, coding, mathematics, and scientific tasks with thinking capabilities",
+      "pricing_per_1m_tokens": {
+        "input": 1.25,
+        "output": 10.00
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "specialization": "State-of-the-art workhorse model for reasoning, coding, and mathematics",
+      "pricing_per_1m_tokens": {
+        "input": 0.30,
+        "output": 2.50
+      }
+    },
+    {
+      "model": "google/gemini-3-pro-preview",
+      "specialization": "Flagship frontier model for high-precision multimodal reasoning",
+      "pricing_per_1m_tokens": {
+        "input": 2.00,
+        "output": 12.00
+      }
+    },
+    {
+      "model": "google/gemini-3.1-pro-preview",
+      "specialization": "Frontier reasoning model with enhanced software engineering and agentic reliability",
+      "pricing_per_1m_tokens": {
+        "input": 2.00,
+        "output": 12.00
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash-image",
+      "specialization": "Nano Banana - Image generation model with contextual understanding",
+      "pricing_per_1m_tokens": {
+        "input": 0.30,
+        "output": 2.50,
+        "image_output": 30.00
+      }
+    },
+    {
+      "model": "google/gemini-3-pro-image-preview",
+      "specialization": "Nano Banana Pro - Advanced image generation with multimodal reasoning",
+      "pricing_per_1m_tokens": {
+        "input": 2.00,
+        "output": 12.00,
+        "image_output": 120.00
+      }
     }
-  ]
+  ],
+  "defaults": {
+    "claude_model": "claude-sonnet-4-5-20241022",
+    "gemini_model": "google/gemini-2.5-flash"
+  }
 }
