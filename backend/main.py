@@ -49,6 +49,7 @@ class ExecuteRequest(BaseModel):
     original_prompt: str
     subtasks: list[dict]
     orchestrator_model: str = "gemma3:12b"
+    user_id: str = "demo"
 
 class BillingCreateCustomerRequest(BaseModel):
     user_id: str
@@ -150,6 +151,7 @@ async def execute(req: ExecuteRequest):
         original_prompt=req.original_prompt,
         subtasks=req.subtasks,
         orchestrator_model=req.orchestrator_model,
+        user_id=req.user_id,
         max_workers=8,
     )
     event_queue = engine.run()

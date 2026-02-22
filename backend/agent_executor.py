@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 from ollama_client import get_ollama_client
+from billing_ledger import record_usage_debit
 
 # ---------------------------------------------------------------------------
 # Category-specific system prompts — gives each agent a sharper role
@@ -94,10 +95,12 @@ class ExecutionEngine:
         original_prompt: str,
         subtasks: list[dict],
         orchestrator_model: str = "gemma3:12b",
+        user_id: str = "demo",
         max_workers: int = 8,
     ):
         self.original_prompt = original_prompt
         self.orchestrator_model = orchestrator_model
+        self.user_id = user_id
         self.tasks: dict[int, dict] = {}
         self.dependents: dict[int, list[int]] = defaultdict(list)
         self.events: Queue = Queue()
@@ -239,6 +242,35 @@ class ExecutionEngine:
             input_cost = (float(prompt_tokens) / 1_000_000) * float(pricing["input"])
             output_cost = (float(output_tokens) / 1_000_000) * float(pricing["output"])
             total_cost = input_cost + output_cost
+
+            billing = record_usage_debit(
+                user_id=self.user_id,
+                subtask_id=task_id,
+                model=task["assigned_model"],
+                input_tokens=int(prompt_tokens),
+                output_tokens=int(output_tokens),
+                total_cost_usd=total_cost,
+            )
+            if billing.get("status") == "insufficient_funds":
+                self.events.put({
+                    "event": "billing_required",
+                    "data": {
+                        "user_id": self.user_id,
+                        "subtask_id": task_id,
+                        "required_microdollars": billing.get("required_microdollars"),
+                        "balance_microdollars": billing.get("balance_microdollars"),
+                    },
+                })
+                raise RuntimeError("Insufficient wallet balance")
+
+            if billing.get("status") == "debited":
+                self.events.put({
+                    "event": "wallet_updated",
+                    "data": {
+                        "user_id": self.user_id,
+                        "balance_microdollars": billing.get("balance_microdollars"),
+                    },
+                })
 
             with self._lock:
                 task["status"] = "completed"
