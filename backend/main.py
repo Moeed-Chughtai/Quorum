@@ -145,6 +145,25 @@ def billing_balance(user_id: str = "demo"):
     }
 
 
+class DemoTopupRequest(BaseModel):
+    user_id: str = "demo"
+    amount_usd: float = 5.0
+
+
+@app.post("/api/billing/topup")
+def billing_topup(req: DemoTopupRequest):
+    """Quick demo top-up: credits the wallet directly (no Stripe)."""
+    if req.amount_usd <= 0 or req.amount_usd > 100:
+        raise HTTPException(status_code=400, detail="amount_usd must be between 0 and 100")
+    result = record_topup_credit(req.user_id, req.amount_usd, "demo_topup")
+    balance_micro = get_wallet_balance_microdollars(req.user_id)
+    return {
+        "status": result.get("status", "ok"),
+        "balance_microdollars": balance_micro,
+        "balance_usd": round(balance_micro / 1_000_000, 6),
+    }
+
+
 @app.get("/api/models")
 def list_models():
     """List available Ollama models (cloud or local). Returns empty list + error message if unreachable."""

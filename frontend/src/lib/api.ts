@@ -10,6 +10,20 @@ export async function getWalletBalance(userId: string = "demo"): Promise<{
   return res.json();
 }
 
+export async function topUpWallet(userId: string = "demo", amountUsd: number = 5.0): Promise<{
+  status: string;
+  balance_microdollars: number;
+  balance_usd: number;
+}> {
+  const res = await fetch(`${API_BASE}/api/billing/topup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, amount_usd: amountUsd }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export type Subtask = {
   id: number;
   title: string;

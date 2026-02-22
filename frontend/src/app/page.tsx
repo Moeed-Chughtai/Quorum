@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import {
   getModels,
   getWalletBalance,
+  topUpWallet,
   getCarbonIntensity,
   getCarbonForecast,
   decompose,
@@ -59,6 +60,7 @@ function Nav({
   carbonIntensity,
   walletBalance,
   onModelChange,
+  onTopUp,
 }: {
   models: { name: string }[];
   selectedModel: string;
@@ -66,6 +68,7 @@ function Nav({
   carbonIntensity: CarbonIntensity | null;
   walletBalance: number | null;
   onModelChange: (m: string) => void;
+  onTopUp: () => void;
 }) {
   return (
     <nav className="shrink-0 bg-[var(--nav-bg)] border-b border-[var(--nav-border)]">
@@ -81,10 +84,17 @@ function Nav({
 
         <div className="flex items-center gap-4">
           {walletBalance !== null && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--nav-border)]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--nav-border)]">
               <span className="text-[10px] text-emerald-400 font-medium font-mono tabular-nums">
-                ${(walletBalance / 1_000_000).toFixed(2)}
+                ${(walletBalance / 1_000_000).toFixed(4)}
               </span>
+              <button
+                onClick={onTopUp}
+                className="ml-0.5 w-4 h-4 rounded flex items-center justify-center text-emerald-400 hover:bg-emerald-400/20 transition-colors text-[11px] font-bold leading-none"
+                title="Add $5.00 to wallet"
+              >
+                +
+              </button>
             </div>
           )}
           {carbonIntensity && (
@@ -250,6 +260,15 @@ export default function Home() {
     setShortcutMod(typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent) ? "\u2318" : "Ctrl");
   }, []);
 
+  const handleTopUp = async () => {
+    try {
+      const data = await topUpWallet("demo", 5.0);
+      setWalletBalance(data.balance_microdollars);
+    } catch (e) {
+      console.error("Top-up failed", e);
+    }
+  };
+
   const handleDecompose = async () => {
     const text = input.trim();
     if (!text || !selectedModel || loading) return;
@@ -359,6 +378,7 @@ export default function Home() {
           carbonIntensity={carbonIntensity}
           walletBalance={walletBalance}
           onModelChange={setSelectedModel}
+          onTopUp={handleTopUp}
         />
 
         {/* Compact task bar */}
@@ -549,6 +569,7 @@ export default function Home() {
         carbonIntensity={carbonIntensity}
         walletBalance={walletBalance}
         onModelChange={setSelectedModel}
+        onTopUp={handleTopUp}
       />
 
       <div className="max-w-2xl mx-auto px-6 py-12">
