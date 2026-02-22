@@ -588,7 +588,7 @@ export default function Home() {
               <span className="text-[var(--text-tertiary)]">Execute with precision.</span>
             </h1>
             <p className="text-[14px] text-[var(--text-secondary)] max-w-sm leading-relaxed">
-              Routes each subtask to the smallest capable model, runs them in parallel, and tracks cost and CO₂ savings in real time, proving that specialised agents are faster, cheaper, and greener than one frontier model doing everything.
+              Routes each subtask to the smallest capable model, runs them in parallel, and tracks cost and CO₂ savings in real time. <br></br>Specialised agents are faster, cheaper, and greener than one frontier model doing everything.
             </p>
             {carbonIntensity && (
               <div className="mt-6 flex items-center gap-2 text-[11px] text-emerald-600">
