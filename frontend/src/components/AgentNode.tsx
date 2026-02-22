@@ -37,15 +37,14 @@ function AgentNode({ data }: AgentNodeProps) {
 
     return (
         <div
-            className={`rounded-xl border bg-white shadow-sm transition-all select-none cursor-pointer group/card ${
-                isRunning
+            className={`rounded-xl border bg-white shadow-sm transition-all select-none cursor-pointer group/card ${isRunning
                     ? 'w-[420px] border-[#d97757]/40 shadow-lg ring-1 ring-[#d97757]/10 hover:shadow-xl'
                     : isCompleted
                         ? 'w-[420px] border-[#16a34a]/25 shadow-md hover:border-[#16a34a]/40 hover:shadow-lg'
                         : isFailed
                             ? 'w-[420px] border-red-300 shadow-md hover:shadow-lg'
                             : 'w-[420px] border-[#e8e5e0] hover:shadow-md hover:border-[#d4d0ca]'
-            }`}
+                }`}
             onClick={() => data.onExpand?.(data.id)}
         >
             <Handle
@@ -56,25 +55,23 @@ function AgentNode({ data }: AgentNodeProps) {
 
             {/* Status bar at top */}
             {(isRunning || isCompleted || isFailed) && (
-                <div className={`h-[3px] rounded-t-xl ${
-                    isRunning ? 'bg-[#d97757] shimmer-bar' :
-                    isCompleted ? 'bg-[#16a34a]' :
-                    'bg-red-500'
-                }`} />
+                <div className={`h-[3px] rounded-t-xl ${isRunning ? 'bg-[#d97757] shimmer-bar' :
+                        isCompleted ? 'bg-[#16a34a]' :
+                            'bg-red-500'
+                    }`} />
             )}
 
             {/* Header */}
             <div className="flex items-start justify-between gap-3 p-4 pb-0">
                 <div className="flex items-center gap-3 overflow-hidden">
-                    <div className={`flex items-center justify-center w-7 h-7 rounded-lg text-[12px] font-bold shrink-0 font-mono ${
-                        isRunning
+                    <div className={`flex items-center justify-center w-7 h-7 rounded-lg text-[12px] font-bold shrink-0 font-mono ${isRunning
                             ? 'bg-[#d97757]/10 border border-[#d97757]/20 text-[#d97757]'
                             : isCompleted
                                 ? 'bg-[#16a34a]/10 border border-[#16a34a]/20 text-[#16a34a]'
                                 : isFailed
                                     ? 'bg-red-50 border border-red-200 text-red-500'
                                     : 'bg-[rgba(217,119,87,0.08)] border border-[rgba(217,119,87,0.15)] text-[#d97757]'
-                    }`}>
+                        }`}>
                         {isCompleted ? (
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -88,9 +85,8 @@ function AgentNode({ data }: AgentNodeProps) {
                         )}
                     </div>
                     <div className="min-w-0">
-                        <h3 className={`text-[14px] font-semibold leading-snug truncate ${
-                            isRunning ? 'text-[#d97757]' : 'text-[#1a1715]'
-                        }`}>
+                        <h3 className={`text-[14px] font-semibold leading-snug truncate ${isRunning ? 'text-[#d97757]' : 'text-[#1a1715]'
+                            }`}>
                             {data.title}
                         </h3>
                         <div className="flex items-center gap-2">
@@ -140,12 +136,11 @@ function AgentNode({ data }: AgentNodeProps) {
             {/* Model + deps */}
             <div className="flex items-center gap-2.5 px-4 pt-2.5 pb-2.5">
                 <div className="flex items-center gap-2 bg-[#f5f3f0] rounded-md px-2.5 py-1.5 border border-[#f0ede8]">
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                        isRunning ? 'bg-[#d97757] animate-pulse' :
-                        isCompleted ? 'bg-[#16a34a]' :
-                        isFailed ? 'bg-red-500' :
-                        'bg-[#a8a29e]'
-                    }`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-[#d97757] animate-pulse' :
+                            isCompleted ? 'bg-[#16a34a]' :
+                                isFailed ? 'bg-red-500' :
+                                    'bg-[#a8a29e]'
+                        }`} />
                     <span className="text-[11px] font-mono text-[#6b6560]">{data.assigned_model}</span>
                 </div>
                 {totals && (

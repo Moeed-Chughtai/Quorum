@@ -22,6 +22,8 @@ from carbon_tracker import (
     get_carbon_intensity,
 )
 from billing_ledger import record_usage_debit
+from billing_stripe import debit_stripe_balance
+from billing_users import get_stripe_customer_id
 
 # ---------------------------------------------------------------------------
 # Category-specific system prompts
@@ -323,6 +325,14 @@ class ExecutionEngine:
                 raise RuntimeError("Insufficient wallet balance")
 
             if billing.get("status") == "debited":
+                # Also debit Stripe Customer Balance (rounded to cents)
+                debit_cents = max(1, int(total_cost * 100))  # at least 1 cent
+                try:
+                    cust_id = get_stripe_customer_id(self.user_id)
+                    if cust_id:
+                        await asyncio.to_thread(debit_stripe_balance, cust_id, debit_cents)
+                except Exception:
+                    pass  # non-fatal: local ledger is already debited
                 await self.events.put({
                     "event": "wallet_updated",
                     "data": {

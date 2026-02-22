@@ -24,6 +24,20 @@ export async function topUpWallet(userId: string = "demo", amountUsd: number = 5
   return res.json();
 }
 
+export async function createTopupIntent(userId: string, amountCents: number): Promise<{
+  payment_intent_id: string;
+  client_secret: string;
+  customer_id: string;
+}> {
+  const res = await fetch(`${API_BASE}/api/billing/create_topup_intent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, amount_cents: amountCents, currency: "usd" }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export type Subtask = {
   id: number;
   title: string;

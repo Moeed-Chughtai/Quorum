@@ -6,7 +6,6 @@ import remarkGfm from "remark-gfm";
 import {
   getModels,
   getWalletBalance,
-  topUpWallet,
   getCarbonIntensity,
   getCarbonForecast,
   decompose,
@@ -20,6 +19,7 @@ import {
 import AgentWorkflow from "@/components/AgentWorkflow";
 import ExecutionTimeline from "@/components/ExecutionTimeline";
 import GreenWindowScheduler from "@/components/GreenWindowScheduler";
+import TopUpModal from "@/components/TopUpModal";
 
 /* ------------------------------------------------------------------ */
 /* Icons                                                               */
@@ -91,7 +91,7 @@ function Nav({
               <button
                 onClick={onTopUp}
                 className="ml-0.5 w-4 h-4 rounded flex items-center justify-center text-emerald-400 hover:bg-emerald-400/20 transition-colors text-[11px] font-bold leading-none"
-                title="Add $5.00 to wallet"
+                title="Add funds"
               >
                 +
               </button>
@@ -152,6 +152,7 @@ export default function Home() {
   const [synthesisPartial, setSynthesisPartial] = useState<string | null>(null);
   const [finalOutput, setFinalOutput] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [topUpOpen, setTopUpOpen] = useState(false);
 
   // Carbon tracking
   const [carbonIntensity, setCarbonIntensity] = useState<CarbonIntensity | null>(null);
@@ -260,13 +261,8 @@ export default function Home() {
     setShortcutMod(typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent) ? "\u2318" : "Ctrl");
   }, []);
 
-  const handleTopUp = async () => {
-    try {
-      const data = await topUpWallet("demo", 5.0);
-      setWalletBalance(data.balance_microdollars);
-    } catch (e) {
-      console.error("Top-up failed", e);
-    }
+  const handleTopUp = () => {
+    setTopUpOpen(true);
   };
 
   const handleDecompose = async () => {
@@ -434,8 +430,8 @@ export default function Home() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2.5 text-[12px] font-medium border-b-2 transition-all flex items-center gap-2 ${isActive
-                    ? "border-[var(--accent)] text-[var(--text-primary)]"
-                    : "border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                  ? "border-[var(--accent)] text-[var(--text-primary)]"
+                  : "border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                   }`}
               >
                 {labels[tab]}
@@ -552,6 +548,11 @@ export default function Home() {
           </div>
 
         </div>
+        <TopUpModal
+          open={topUpOpen}
+          onClose={() => setTopUpOpen(false)}
+          onBalanceUpdated={(b) => setWalletBalance(b)}
+        />
       </div>
     );
   }
@@ -698,6 +699,12 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      <TopUpModal
+        open={topUpOpen}
+        onClose={() => setTopUpOpen(false)}
+        onBalanceUpdated={(b) => setWalletBalance(b)}
+      />
     </main>
   );
 }
