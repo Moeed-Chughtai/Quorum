@@ -60,7 +60,6 @@ interface AgentWorkflowProps {
     synthesisPartial: string | null;
     finalOutput: string | null;
     carbonSummary: CarbonSummary | null;
-    onExecute: () => void;
     onCancel: () => void;
 }
 
@@ -104,7 +103,6 @@ export default function AgentWorkflow({
     synthesisPartial,
     finalOutput,
     carbonSummary,
-    onExecute,
     onCancel,
 }: AgentWorkflowProps) {
     const [showFinalOutput, setShowFinalOutput] = useState(false);
@@ -211,7 +209,7 @@ export default function AgentWorkflow({
     const selectedExec = selectedTaskId !== null ? taskStates[selectedTaskId] : null;
 
     return (
-        <div className="relative w-full h-[70vh] min-h-[500px] max-h-[800px] border-y border-[var(--border)] bg-[var(--surface-raised)] overflow-hidden">
+        <div className="relative w-full h-full bg-[var(--surface-raised)] overflow-hidden">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -267,18 +265,6 @@ export default function AgentWorkflow({
 
             {/* ── Bottom-center: action buttons ── */}
             <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center gap-3 pointer-events-none">
-                {!executing && !executionDone && (
-                    <button
-                        onClick={onExecute}
-                        className="pointer-events-auto btn-glow px-6 py-3 rounded-xl text-[13px] font-medium bg-[#1a1715] text-white hover:bg-[#2e2a26] transition-all duration-300 flex items-center gap-2 shadow-lg"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-                        </svg>
-                        Execute all {total} agents
-                    </button>
-                )}
-
                 {executing && !synthesizing && (
                     <button
                         onClick={onCancel}

@@ -435,33 +435,45 @@ export default function Home() {
         {/* Tab content — fills remaining height */}
         <div className="flex-1 overflow-hidden">
 
-          {/* Graph tab */}
-          <div className={`h-full overflow-auto ${activeTab === "graph" ? "" : "hidden"}`}>
-            {/* Green window scheduler — shown only before execution starts */}
+          {/* Graph tab — side-by-side: grid status panel + agent graph */}
+          <div className={`h-full flex overflow-hidden ${activeTab === "graph" ? "" : "hidden"}`}>
+
+            {/* Left: Green Window side panel (pre-execution only) */}
             {!executing && !executionDone && forecast && (
-              <div className="max-w-5xl mx-auto px-6 pt-4 pb-1">
-                <GreenWindowScheduler
-                  forecast={forecast}
-                  onRunNow={handleExecute}
-                  onSchedule={(delayMs) => setScheduledAt(Date.now() + delayMs)}
-                  countdown={countdownStr}
-                  onCancelSchedule={() => { setScheduledAt(null); setCountdownStr(null); }}
-                  disabled={executing}
-                />
-              </div>
+              <aside className="w-[300px] shrink-0 border-r border-[var(--border)] flex flex-col overflow-hidden" style={{ background: "var(--surface)" }}>
+                {/* Panel header */}
+                <div className="shrink-0 px-4 pt-3 pb-2.5 border-b border-[var(--border)]">
+                  <p className="text-[9px] uppercase tracking-[0.2em] font-semibold" style={{ color: "var(--accent)" }}>Pre-flight</p>
+                  <h3 className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-primary)" }}>Grid Status</h3>
+                </div>
+                {/* Scheduler fills remaining panel space */}
+                <div className="flex-1 p-3 min-h-0 overflow-y-auto">
+                  <GreenWindowScheduler
+                    forecast={forecast}
+                    onRunNow={handleExecute}
+                    onSchedule={(delayMs) => setScheduledAt(Date.now() + delayMs)}
+                    countdown={countdownStr}
+                    onCancelSchedule={() => { setScheduledAt(null); setCountdownStr(null); }}
+                    disabled={executing}
+                  />
+                </div>
+              </aside>
             )}
-            <AgentWorkflow
-              subtasks={result.subtasks}
-              taskStates={taskStates}
-              executing={executing}
-              executionDone={executionDone}
-              synthesizing={synthesizing}
-              synthesisPartial={synthesisPartial}
-              finalOutput={finalOutput}
-              carbonSummary={carbonSummary}
-              onExecute={handleExecute}
-              onCancel={handleCancel}
-            />
+
+            {/* Right: Agent graph — fills remaining space */}
+            <div className="flex-1 min-w-0 h-full overflow-hidden">
+              <AgentWorkflow
+                subtasks={result.subtasks}
+                taskStates={taskStates}
+                executing={executing}
+                executionDone={executionDone}
+                synthesizing={synthesizing}
+                synthesisPartial={synthesisPartial}
+                finalOutput={finalOutput}
+                carbonSummary={carbonSummary}
+                onCancel={handleCancel}
+              />
+            </div>
           </div>
 
           {/* Carbon tab */}
