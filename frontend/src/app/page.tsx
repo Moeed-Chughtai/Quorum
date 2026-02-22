@@ -299,7 +299,7 @@ export default function Home() {
     abortRef.current = executeSubtasks(result, {
       onAgentStarted: (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], status: "running", startedAt: Date.now() / 1000 - executionStartRef.current } })),
       onAgentToken: (d) => setTaskStates(p => ({ ...p, [d.id]: { ...p[d.id], partialOutput: (p[d.id]?.partialOutput ?? "") + d.token } })),
-      onAgentCompleted: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, partialOutput: null, error: null, duration: d.duration, gco2: d.gco2, tokens: d.tokens, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
+      onAgentCompleted: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "completed", output: d.output, partialOutput: null, error: null, duration: d.duration, gco2: d.gco2, tokens: d.tokens, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current, input_tokens: d.input_tokens, output_tokens: d.output_tokens, input_cost: d.input_cost, output_cost: d.output_cost, total_cost: d.total_cost } })),
       onAgentFailed: (d) => setTaskStates(p => ({ ...p, [d.id]: { status: "failed", output: null, partialOutput: null, error: d.error, duration: null, gco2: null, tokens: null, startedAt: p[d.id]?.startedAt ?? null, completedAt: Date.now() / 1000 - executionStartRef.current } })),
       onSynthesizing: () => { setSynthesizing(true); setSynthesisPartial(""); },
       onSynthesisToken: (d) => setSynthesisPartial(p => (p ?? "") + d.token),

@@ -105,6 +105,11 @@ function AgentNode({ data }: AgentNodeProps) {
                                     {exec?.duration != null && (
                                         <span className="text-[10px] text-[#16a34a] font-mono">{exec.duration}s</span>
                                     )}
+                                    {exec?.total_cost != null && exec.total_cost > 0 && (
+                                        <span className="text-[9px] font-mono text-amber-700 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded-full">
+                                            ${exec.total_cost >= 0.01 ? exec.total_cost.toFixed(2) : exec.total_cost.toFixed(4)}
+                                        </span>
+                                    )}
                                     {exec?.gco2 != null && (
                                         <span className="text-[9px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full">
                                             {exec.gco2.toFixed(5)} gCO₂
