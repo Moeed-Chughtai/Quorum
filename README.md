@@ -1,39 +1,65 @@
-# HackEurope
+# Quorum — Carbon-Aware Multi-Agent Orchestration
 
-Next.js frontend + Python (FastAPI) backend with **Ollama Cloud** (and optional local Ollama) support, plus per-agent-step billing via Stripe wallet top-ups.
+**HackEurope · Sustainability Track**
+
+Break down any task into subtasks, route each to the smallest capable model, run them in parallel, and track cost and CO₂ savings in real time. Built with a Next.js frontend and a Python (FastAPI) backend, using **Ollama Cloud** or local Ollama for inference, plus optional Stripe wallet top-ups for per-agent billing.
+
+---
+
+## What it does
+
+- **Task decomposition** — A single prompt is decomposed into subtasks; each subtask is assigned a model (by parameter size/capability) and optional dependencies.
+- **Parallel execution** — Agents run concurrently where the dependency graph allows; progress streams to the UI (graph view, timeline, live output).
+- **Carbon tracking** — Pipeline CO₂ (gCO₂) is estimated from token counts and GPU energy models; compared to a 70B single-model baseline. Real-time grid intensity (France by default) from [Electricity Maps](https://www.electricitymaps.com/) or a built-in fallback.
+- **Green window scheduling** — Optional “run when grid is cleaner” using 24h history + 8h forecast (when Electricity Maps key is set).
+- **Billing** — Demo wallet (SQLite ledger); optional Stripe integration for top-ups and payment-method storage. Backend seeds the demo user with $15 on first run.
+
+---
+
+## Prerequisites
+
+- **Node.js** 18+ and **npm**
+- **Python** 3.10+
+- **Ollama** — [ollama.com](https://ollama.com): either local install or an [Ollama Cloud API key](https://ollama.com/settings/keys)
+- **Stripe** (optional, for real top-ups): account + Stripe CLI for local webhooks
+
+---
 
 ## Quick start
 
-### 1. Environment
+### 1. Clone and environment
 
-Copy `.env.example` to `.env` in the repo root and fill in:
+Clone the repo. Create a **`.env`** file in the **project root** (same folder as `backend/` and `frontend/`). Backend and frontend read from this file.
 
-```
-OLLAMA_API_KEY=your_ollama_api_key
+**Required for basic run:**
+
+```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+**For Ollama Cloud (recommended):**
+
+```env
+OLLAMA_API_KEY=your_ollama_api_key
+```
+
+**For Stripe top-ups (optional):**
+
+```env
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-### 2. Stripe CLI (webhook forwarding)
+**For live carbon intensity (optional):**
 
-Stripe webhooks cannot reach `localhost` directly. The setup script downloads the Stripe CLI and authenticates:
-
-```bash
-./scripts/setup-stripe.sh            # downloads CLI + opens browser login
-./scripts/setup-stripe.sh --listen    # starts webhook forwarding (run in its own terminal)
+```env
+ELECTRICITY_MAPS_API_KEY=your_em_key
 ```
 
-The `--listen` command prints a `whsec_...` secret. Set it as `STRIPE_WEBHOOK_SECRET` in `.env`.
+Without `ELECTRICITY_MAPS_API_KEY`, the app uses a France fallback intensity (~65 gCO₂/kWh).
 
-To just print the webhook secret without blocking:
-
-```bash
-./scripts/setup-stripe.sh --print-secret
-```
-
-### 3. Backend (Python)
+### 2. Backend (Python)
 
 ```bash
 cd backend
@@ -43,11 +69,12 @@ pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Ollama Cloud** (recommended): create an [API key](https://ollama.com/settings/keys) and set `OLLAMA_API_KEY` in `.env`.
+- **Ollama Cloud:** set `OLLAMA_API_KEY` in `.env`; no local Ollama needed.
+- **Local Ollama only:** leave `OLLAMA_API_KEY` unset, run [Ollama](https://ollama.com) locally, and pull models (e.g. `ollama pull llama3.2`).
 
-**Local Ollama only:** run [Ollama](https://ollama.com) locally (omit `OLLAMA_API_KEY`), then start the backend as above. Pull models with e.g. `ollama pull llama3.2`.
+On first run, the backend seeds the demo user with **$15** so you can run agents without Stripe. Health: [http://localhost:8000/api/health](http://localhost:8000/api/health).
 
-### 4. Frontend (Next.js)
+### 3. Frontend (Next.js)
 
 ```bash
 cd frontend
@@ -57,75 +84,73 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. Seed wallet balance (first run)
+### 4. Stripe webhooks (only if using Stripe top-ups)
 
-The demo user starts with $0 balance. Seed it so agents can execute:
+Stripe cannot reach `localhost`. Use the Stripe CLI to forward events:
 
 ```bash
-cd backend
-python -c "
-from billing_ledger import record_topup_credit
-print(record_topup_credit('demo', 10.0, 'seed_initial'))
-"
+./scripts/setup-stripe.sh            # one-time: download CLI + log in
+./scripts/setup-stripe.sh --listen   # forward webhooks (run in a separate terminal)
 ```
 
-## Running order
+Use the printed `whsec_...` as `STRIPE_WEBHOOK_SECRET` in `.env`. To only print the secret: `./scripts/setup-stripe.sh --print-secret`.
 
-Start everything in three separate terminals:
+---
+
+## Run order (summary)
 
 | Order | Terminal | Command |
-|-------|----------|---------|
-| 1     | Stripe   | `./scripts/setup-stripe.sh --listen` |
-| 2     | Backend  | `cd backend && source .venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000` |
-| 3     | Frontend | `cd frontend && npm run dev` |
+|-------|----------|--------|
+| 1 | (optional) Stripe | `./scripts/setup-stripe.sh --listen` |
+| 2 | Backend | `cd backend && source .venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000` |
+| 3 | Frontend | `cd frontend && npm run dev` |
 
-## API
+---
 
-- `GET /api/health` -- backend health and whether Cloud is used.
-- `GET /api/models` -- list Ollama models (cloud or local).
-- `POST /api/chat` -- chat completion (body: `{ "model": "...", "messages": [...], "stream": false }`).
-- `POST /api/decompose` -- decompose a prompt into subtasks (body: `{ "prompt": "...", "orchestrator_model": "gemma3:12b" }`).
-- `POST /api/execute` -- execute subtasks via agents, SSE stream (body: `{ "original_prompt": "...", "subtasks": [...], "user_id": "demo" }`).
-- `GET /api/billing/balance?user_id=demo` -- current wallet balance (microdollars + USD).
-- `POST /api/billing/create_customer` -- create or fetch a Stripe Customer (body: `{ "user_id": "...", "email": "..." }`).
-- `POST /api/billing/create_setup_intent` -- create a SetupIntent to save a payment method (body: `{ "user_id": "..." }`).
-- `POST /api/billing/create_topup_intent` -- create a PaymentIntent for wallet top-ups (body: `{ "user_id": "...", "amount_cents": 500 }`).
-- `POST /api/stripe/webhook` -- Stripe webhook receiver (signature verified).
+## Demo wallet (no Stripe)
 
-## Stripe setup (production)
-
-### Backend env vars
-
-Set these in repo root `.env` (never commit secrets):
-
-- `STRIPE_SECRET_KEY` -- use `sk_test_...` in test mode, `sk_live_...` in production
-- `STRIPE_WEBHOOK_SECRET` -- the endpoint signing secret (`whsec_...`)
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` -- your publishable key (`pk_test_...` or `pk_live_...`)
-
-### Create the webhook endpoint in Stripe Dashboard
-
-1. Stripe Dashboard > Developers > Webhooks.
-2. Add endpoint pointing to `https://YOUR_BACKEND_DOMAIN/api/stripe/webhook`.
-3. Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`.
-4. Copy the signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
-
-### Local development
-
-Use the setup script instead of the dashboard:
+- Backend seeds **demo** with $15 on first start.
+- To add more without Stripe, call the demo top-up API:
 
 ```bash
-./scripts/setup-stripe.sh            # one-time: downloads CLI + logs in
-./scripts/setup-stripe.sh --listen    # forwards webhook events to localhost:8000
+curl -X POST http://localhost:8000/api/billing/topup \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"demo","amount_usd":5}'
 ```
 
-### Wallet top-up webhook behavior
+---
 
-Wallet credits happen only for `payment_intent.succeeded` events where the PaymentIntent metadata includes:
-- `purpose=wallet_topup`
-- `user_id=<your user id>`
+## API (concise)
 
-This metadata is set automatically when creating top-ups via `POST /api/billing/create_topup_intent`.
+| Method | Path | Purpose |
+|--------|------|--------|
+| GET | `/api/health` | Backend status; `ollama_cloud` flag |
+| GET | `/api/models` | List Ollama models (cloud or local) |
+| GET | `/api/carbon-intensity?zone=FR` | Current grid carbon intensity (gCO₂/kWh) |
+| GET | `/api/carbon-forecast?zone=FR` | 24h history + 8h forecast (+ green window) |
+| GET | `/api/billing/balance?user_id=demo` | Wallet balance (microdollars + USD) |
+| POST | `/api/decompose` | Decompose prompt → subtasks + routing |
+| POST | `/api/execute` | Run subtasks (SSE stream: progress, carbon summary) |
+| POST | `/api/chat` | Chat completion (single model) |
+| POST | `/api/billing/topup` | Demo top-up (no Stripe) |
+| POST | `/api/billing/create_customer` | Create/fetch Stripe customer |
+| POST | `/api/billing/create_setup_intent` | SetupIntent for saving payment method |
+| POST | `/api/billing/create_topup_intent` | PaymentIntent for wallet top-up |
+| POST | `/api/stripe/webhook` | Stripe webhook (signature verified) |
 
-## Ollama Cloud models
+---
 
-With `OLLAMA_API_KEY` set, the backend uses `https://ollama.com` and you can use [cloud models](https://ollama.com/search?c=cloud) (e.g. `gpt-oss:120b-cloud`). Without the key, it uses local Ollama at `http://localhost:11434`.
+## Stripe (production)
+
+- Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in `.env` (use `sk_live_...` / `pk_live_...` for production).
+- In Stripe Dashboard → Developers → Webhooks, add an endpoint: `https://YOUR_BACKEND_DOMAIN/api/stripe/webhook`.
+- Events: `payment_intent.succeeded`, `payment_intent.payment_failed`.
+- Wallet credits occur only for `payment_intent.succeeded` with metadata `purpose=wallet_topup` and `user_id`; the app sets these when creating top-ups via `POST /api/billing/create_topup_intent`.
+
+---
+
+## Tech stack
+
+- **Frontend:** Next.js 15, React 19, Tailwind, React Flow (graph), Stripe React/JS.
+- **Backend:** FastAPI, Ollama (cloud or local), SQLite (billing ledger + user→Stripe mapping), Stripe, Electricity Maps (optional).
+- **Carbon:** Energy model from GPU TDP/throughput; carbon intensity from Electricity Maps or zone fallbacks; 70B baseline comparison and green-window suggestion.
