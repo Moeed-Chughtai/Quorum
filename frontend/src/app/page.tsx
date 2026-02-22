@@ -22,6 +22,7 @@ import {
 import AgentWorkflow from "@/components/AgentWorkflow";
 import ExecutionTimeline from "@/components/ExecutionTimeline";
 import GreenWindowScheduler from "@/components/GreenWindowScheduler";
+import WorkflowMarketplace from "@/components/WorkflowMarketplace";
 import TopUpModal from "@/components/TopUpModal";
 
 /* ------------------------------------------------------------------ */
@@ -172,6 +173,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("graph");
   const [shortcutMod, setShortcutMod] = useState("Ctrl"); // stable for SSR; updated in useEffect
 
+  // Marketplace: false = show marketplace, true = show graph/tabs
+  const [workflowSelected, setWorkflowSelected] = useState(false);
+
   // Green window scheduling
   const [forecast, setForecast] = useState<CarbonForecast | null>(null);
   const [scheduledAt, setScheduledAt] = useState<number | null>(null); // Date.now() target
@@ -297,6 +301,7 @@ export default function Home() {
     setCarbonTimeSeries([]);
     setClaudeComparison(null);
     setActiveTab("graph");
+    setWorkflowSelected(false);
     setLoadingMessage("Decomposing...");
     const t = setTimeout(() => setLoadingMessage("Still working — models are thinking..."), 18_000);
     try {
@@ -368,15 +373,45 @@ export default function Home() {
     setCountdownStr(null);
     setError(null);
     setActiveTab("graph");
+    setWorkflowSelected(false);
   };
 
   const busy = loading || executing;
 
   /* ---------------------------------------------------------------- */
-  /* App mode — shown after decomposition                              */
+  /* Marketplace mode — pick a workflow after decomposition           */
   /* ---------------------------------------------------------------- */
 
-  if (result && !loading) {
+  if (result && !loading && !workflowSelected) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
+        <Nav
+          models={models}
+          selectedModel={selectedModel}
+          source={source}
+          carbonIntensity={carbonIntensity}
+          walletBalance={walletBalance}
+          onModelChange={setSelectedModel}
+          onTopUp={handleTopUp}
+        />
+        <WorkflowMarketplace
+          result={result}
+          onSelectReal={() => setWorkflowSelected(true)}
+        />
+        <TopUpModal
+          open={topUpOpen}
+          onClose={() => { setTopUpOpen(false); getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {}); }}
+          onBalanceUpdated={(b) => setWalletBalance(b)}
+        />
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* App mode — shown after workflow is selected from marketplace      */
+  /* ---------------------------------------------------------------- */
+
+  if (result && !loading && workflowSelected) {
     const agentCount = new Set(result.subtasks.map(s => s.assigned_model)).size;
     const hasCarbon = carbonTimeSeries.length > 0;
     const hasOutput = !!finalOutput;
