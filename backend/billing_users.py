@@ -7,29 +7,6 @@ def _now_s() -> int:
     return int(time.time())
 
 
-def get_user(user_id: str) -> dict | None:
-    conn = connect()
-    try:
-        init_db(conn)
-        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
-
-
-def ensure_user(user_id: str) -> None:
-    conn = connect()
-    try:
-        init_db(conn)
-        conn.execute(
-            "INSERT OR IGNORE INTO users(id, created_at) VALUES(?, ?)",
-            (user_id, _now_s()),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def get_stripe_customer_id(user_id: str) -> str | None:
     conn = connect()
     try:
@@ -57,30 +34,6 @@ def set_stripe_customer_id(user_id: str, stripe_customer_id: str) -> None:
         conn.execute(
             "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
             (stripe_customer_id, user_id),
-        )
-        conn.execute("COMMIT")
-    except Exception:
-        try:
-            conn.execute("ROLLBACK")
-        except Exception:
-            pass
-        raise
-    finally:
-        conn.close()
-
-
-def set_default_payment_method_id(user_id: str, payment_method_id: str) -> None:
-    conn = connect()
-    try:
-        init_db(conn)
-        conn.execute("BEGIN IMMEDIATE")
-        conn.execute(
-            "INSERT OR IGNORE INTO users(id, created_at) VALUES(?, ?)",
-            (user_id, _now_s()),
-        )
-        conn.execute(
-            "UPDATE users SET default_payment_method_id = ? WHERE id = ?",
-            (payment_method_id, user_id),
         )
         conn.execute("COMMIT")
     except Exception:

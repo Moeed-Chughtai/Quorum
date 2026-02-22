@@ -238,6 +238,9 @@ class ExecutionEngine:
                 self._done[task_id].set()
                 return
 
+        async with self._lock:
+            task["started_at"] = time.time()
+
         await self.events.put({
             "event": "agent_started",
             "data": {

@@ -10,8 +10,6 @@ export async function getWalletBalance(userId: string = "demo"): Promise<{
   return res.json();
 }
 
-export type ChatMessage = { role: string; content: string };
-
 export type Subtask = {
   id: number;
   title: string;
@@ -120,32 +118,6 @@ export async function decompose(
   }
 }
 
-export async function chat(
-  model: string,
-  messages: ChatMessage[],
-): Promise<{ message: ChatMessage }> {
-  const res = await fetch(`${API_BASE}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, stream: false }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function health(): Promise<{
-  status: string;
-  ollama_cloud: boolean;
-}> {
-  const res = await fetch(`${API_BASE}/api/health`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-// ---------------------------------------------------------------------------
-// Agent execution (SSE streaming)
-// ---------------------------------------------------------------------------
-
 export type TaskStatus = "pending" | "running" | "completed" | "failed";
 
 export type SubtaskExecution = {
@@ -190,13 +162,6 @@ export type ExecutionCallbacks = {
   onSynthesisComplete: (data: { output: string }) => void;
   onCarbonUpdate: (data: { total_gco2: number }) => void;
   onCarbonSummary: (data: CarbonSummary) => void;
-  onBillingRequired?: (data: {
-    user_id: string;
-    subtask_id: number;
-    required_microdollars: number;
-    balance_microdollars: number;
-  }) => void;
-  onWalletUpdated?: (data: { user_id: string; balance_microdollars: number }) => void;
   onError: (error: string) => void;
 };
 
@@ -271,12 +236,6 @@ export function executeSubtasks(
                   break;
                 case "carbon_summary":
                   callbacks.onCarbonSummary(data);
-                  break;
-                case "billing_required":
-                  callbacks.onBillingRequired?.(data);
-                  break;
-                case "wallet_updated":
-                  callbacks.onWalletUpdated?.(data);
                   break;
               }
               currentEvent = "";

@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
+import asyncio
+import json as _json
+import logging
+import os
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -11,12 +14,13 @@ load_dotenv(_backend_dir / ".env")
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 import stripe
 
 from billing_db import init_billing_db
-from billing_ledger import record_topup_credit
+from billing_ledger import record_topup_credit, get_wallet_balance_microdollars
 from billing_stripe import configure_stripe, webhook_secret
 from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
@@ -52,6 +56,7 @@ class ExecuteRequest(BaseModel):
     orchestrator_model: str = "gemma3:12b"
     user_id: str = "demo"
 
+
 class BillingCreateCustomerRequest(BaseModel):
     user_id: str
     email: str | None = None
@@ -77,6 +82,11 @@ async def lifespan(app: FastAPI):
         pass  # Optional: log that Ollama isn't available yet
     try:
         init_billing_db()
+        # Seed demo wallet with $10 if it has zero balance (fresh DB)
+        bal = get_wallet_balance_microdollars("demo")
+        if bal == 0:
+            record_topup_credit("demo", 10.0, "seed_initial_balance")
+            print("[billing] Seeded demo wallet with $10.00")
     except Exception:
         pass
     # Pre-fetch carbon intensity (caches for the process lifetime)
@@ -114,7 +124,7 @@ def health():
 def carbon_intensity_endpoint(zone: str = "FR"):
     """Return real-time grid carbon intensity for the given zone."""
     intensity = get_carbon_intensity(zone)
-    source = "electricity_maps" if __import__("os").environ.get("ELECTRICITY_MAPS_API_KEY") else "fallback"
+    source = "electricity_maps" if os.environ.get("ELECTRICITY_MAPS_API_KEY") else "fallback"
     return {"intensity": intensity, "zone": zone, "source": source}
 
 
@@ -124,14 +134,9 @@ def carbon_forecast_endpoint(zone: str = "FR"):
     return get_carbon_forecast(zone)
 
 
-class WalletBalanceRequest(BaseModel):
-    user_id: str = "demo"
-
-
 @app.get("/api/billing/balance")
 def billing_balance(user_id: str = "demo"):
     """Return current wallet balance in microdollars and USD."""
-    from billing_ledger import get_wallet_balance_microdollars
     balance_micro = get_wallet_balance_microdollars(user_id)
     return {
         "user_id": user_id,
@@ -160,8 +165,6 @@ def list_models():
         return {"models": models, "source": source}
     except Exception as e:
         msg = str(e)
-        # Log so you see the real error in the server terminal
-        import logging
         logging.getLogger("uvicorn.error").warning("Ollama list_models failed: %s", msg)
         return {"models": [], "source": source, "error": msg}
 
@@ -179,10 +182,6 @@ def decompose(req: DecomposeRequest):
 @app.post("/api/execute")
 async def execute(req: ExecuteRequest):
     """Execute all subtasks via their assigned agents, streaming progress as SSE."""
-    import asyncio
-    import json as _json
-    from fastapi.responses import StreamingResponse
-
     intensity = get_carbon_intensity("FR")
     engine = ExecutionEngine(
         original_prompt=req.original_prompt,
@@ -214,7 +213,7 @@ async def execute(req: ExecuteRequest):
     )
 
 
-@app.post("/api/chat", response_model=Optional[ChatResponse])
+@app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     """Send a chat completion request. Non-streaming only for simplicity."""
     try:
@@ -338,5 +337,4 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
     uvicorn.run(app, host="0.0.0.0", port=8000)

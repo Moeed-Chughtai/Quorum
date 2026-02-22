@@ -51,10 +51,6 @@ _ZONE_FALLBACKS: dict[str, float] = {
     "EU": 295.0,   # EU average
 }
 
-# Baseline: a typical large open-source frontier model (70B dense)
-# Used as "what you would have used without AgentFlow routing"
-BASELINE_PARAMS_B = 70.0
-
 # Module-level cache so we only call the API once per process
 _intensity_cache: dict[str, float] = {}
 
@@ -126,12 +122,6 @@ def estimate_gco2(model_name: str, token_count: int, carbon_intensity: float) ->
     """Estimate gCO2 for a given number of tokens on a given model."""
     params_b = extract_params_b(model_name)
     energy_kwh = _interp_energy(params_b) * token_count / 1000.0
-    return energy_kwh * carbon_intensity
-
-
-def baseline_gco2(total_tokens: int, carbon_intensity: float) -> float:
-    """Estimate gCO2 if the same tokens were processed by a single 70B model."""
-    energy_kwh = _interp_energy(BASELINE_PARAMS_B) * total_tokens / 1000.0
     return energy_kwh * carbon_intensity
 
 

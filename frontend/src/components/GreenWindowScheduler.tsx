@@ -20,15 +20,7 @@ const CW = VW - PL - PR;   // 662
 const CH = VH - PT - PB;   // 70
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
-/** Map gCO₂/kWh → a CSS color (green → amber → red scale). */
-function intensityColor(v: number, alpha = 1): string {
-    if (v < 100)  return `rgba(16,185,129,${alpha})`;  // emerald
-    if (v < 200)  return `rgba(245,158,11,${alpha})`;  // amber
-    if (v < 350)  return `rgba(249,115,22,${alpha})`;  // orange
-    return              `rgba(239,68,68,${alpha})`;    // red
-}
-
-/** Scale a gCO₂/kWh value to a CSS hue for the fill gradient. */
+/** Scale a gCO₂/kWh value to a CSS hex colour for the fill gradient. */
 function intensityHex(v: number): string {
     if (v < 100)  return '#10b981';
     if (v < 200)  return '#f59e0b';

@@ -73,7 +73,6 @@ interface Props {
     subtasks: Subtask[];
     taskStates: Record<number, SubtaskExecution>;
     executing: boolean;
-    executionDone: boolean;
     carbonSummary: CarbonSummary | null;
     carbonTimeSeries: Array<{ t: number; actual: number }>;
 }

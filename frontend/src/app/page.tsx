@@ -357,6 +357,7 @@ export default function Home() {
           selectedModel={selectedModel}
           source={source}
           carbonIntensity={carbonIntensity}
+          walletBalance={walletBalance}
           onModelChange={setSelectedModel}
         />
 
@@ -471,7 +472,6 @@ export default function Home() {
                 subtasks={result.subtasks}
                 taskStates={taskStates}
                 executing={executing}
-                executionDone={executionDone}
                 carbonSummary={carbonSummary}
                 carbonTimeSeries={carbonTimeSeries}
               />
