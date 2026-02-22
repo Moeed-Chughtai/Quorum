@@ -22,7 +22,7 @@ import stripe
 
 from billing_db import init_billing_db
 from billing_ledger import record_topup_credit, get_wallet_balance_microdollars
-from billing_stripe import configure_stripe, webhook_secret, get_stripe_balance_cents, credit_stripe_balance, debit_stripe_balance
+from billing_stripe import configure_stripe, webhook_secret
 from billing_users import get_stripe_customer_id, set_stripe_customer_id
 from ollama_client import get_ollama_client, is_cloud
 from task_decomposer import decompose_and_route
@@ -83,27 +83,11 @@ async def lifespan(app: FastAPI):
         pass  # Optional: log that Ollama isn't available yet
     try:
         init_billing_db()
-        # Ensure demo Stripe customer exists
-        _demo_cust = get_stripe_customer_id("demo")
-        if not _demo_cust:
-            try:
-                configure_stripe()
-                c = stripe.Customer.create(metadata={"user_id": "demo"})
-                set_stripe_customer_id("demo", c["id"])
-                _demo_cust = c["id"]
-            except Exception:
-                pass
-        # Seed demo wallet with $10 if it has zero balance (fresh DB)
+        # Seed demo wallet with $15 if it has zero balance (fresh DB)
         bal = get_wallet_balance_microdollars("demo")
         if bal == 0:
-            record_topup_credit("demo", 10.0, "seed_initial_balance")
-            # Also credit Stripe customer balance
-            if _demo_cust:
-                try:
-                    credit_stripe_balance(_demo_cust, 1000)  # $10 = 1000 cents
-                except Exception:
-                    pass
-            print("[billing] Seeded demo wallet with $10.00")
+            record_topup_credit("demo", 15.0, "seed_initial_balance")
+            print("[billing] Seeded demo wallet with $15.00")
     except Exception:
         pass
     # Pre-fetch carbon intensity (caches for the process lifetime)
@@ -153,30 +137,16 @@ def carbon_forecast_endpoint(zone: str = "FR"):
 
 @app.get("/api/billing/balance")
 def billing_balance(user_id: str = "demo"):
-    """Return current wallet balance from Stripe Customer Balance."""
-    # Try reading from Stripe first (source of truth)
-    cust_id = get_stripe_customer_id(user_id)
-    if cust_id:
-        try:
-            balance_cents = get_stripe_balance_cents(cust_id)
-            balance_micro = balance_cents * 10_000  # cents → microdollars
-            return {
-                "user_id": user_id,
-                "balance_microdollars": balance_micro,
-                "balance_usd": round(balance_cents / 100, 2),
-                "source": "stripe",
-            }
-        except Exception:
-            pass  # fall back to local ledger
-    # Fallback: local SQLite ledger
+    """Return current wallet balance from local SQLite ledger."""
     balance_micro = get_wallet_balance_microdollars(user_id)
     return {
         "user_id": user_id,
         "balance_microdollars": balance_micro,
         "balance_usd": round(balance_micro / 1_000_000, 6),
-        "source": "local",
     }
 
+
+import uuid as _uuid
 
 class DemoTopupRequest(BaseModel):
     user_id: str = "demo"
@@ -185,17 +155,10 @@ class DemoTopupRequest(BaseModel):
 
 @app.post("/api/billing/topup")
 def billing_topup(req: DemoTopupRequest):
-    """Quick demo top-up: credits both local ledger and Stripe customer balance."""
+    """Demo top-up: credits local wallet immediately."""
     if req.amount_usd <= 0 or req.amount_usd > 100:
         raise HTTPException(status_code=400, detail="amount_usd must be between 0 and 100")
-    result = record_topup_credit(req.user_id, req.amount_usd, "demo_topup")
-    # Also credit Stripe customer balance
-    cust_id = get_stripe_customer_id(req.user_id)
-    if cust_id:
-        try:
-            credit_stripe_balance(cust_id, int(req.amount_usd * 100))
-        except Exception:
-            pass
+    result = record_topup_credit(req.user_id, req.amount_usd, f"demo_topup_{_uuid.uuid4().hex[:8]}")
     balance_micro = get_wallet_balance_microdollars(req.user_id)
     return {
         "status": result.get("status", "ok"),
@@ -392,13 +355,6 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
                         amount_usd=amount / 100,
                         stripe_payment_intent_id=obj.get("id"),
                     )
-                    # Credit Stripe Customer Balance so balance endpoint reflects it
-                    cust_id = get_stripe_customer_id(user_id)
-                    if cust_id:
-                        try:
-                            credit_stripe_balance(cust_id, amount)
-                        except Exception:
-                            pass
     return {"received": True}
 
 if __name__ == "__main__":

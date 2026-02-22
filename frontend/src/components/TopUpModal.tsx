@@ -8,7 +8,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { createTopupIntent, getWalletBalance } from "@/lib/api";
+import { createTopupIntent, topUpWallet, getWalletBalance } from "@/lib/api";
 
 /* ------------------------------------------------------------------ */
 /* Stripe singleton                                                    */
@@ -73,17 +73,19 @@ function CheckoutForm({
       return;
     }
 
-    // Payment succeeded — poll balance (webhook may take a moment)
-    let attempts = 0;
-    const poll = async () => {
+    // Payment succeeded — credit local wallet immediately
+    try {
+      const data = await topUpWallet("demo", amountCents / 100);
+      onSuccess(data.balance_microdollars);
+    } catch {
+      // topUpWallet failed — refetch current balance so nav still updates
       try {
-        const data = await getWalletBalance("demo");
-        onSuccess(data.balance_microdollars);
+        const fallback = await getWalletBalance("demo");
+        onSuccess(fallback.balance_microdollars);
       } catch {
-        if (attempts++ < 5) setTimeout(poll, 800);
+        onSuccess(0);
       }
-    };
-    poll();
+    }
   };
 
   return (
@@ -148,6 +150,21 @@ export default function TopUpModal({
 
   const amountCents = Math.round(parseFloat(amount || "0") * 100);
   const valid = amountCents >= 50 && amountCents <= 10000; // $0.50 – $100
+
+  const handleQuickAdd = useCallback(async () => {
+    if (!valid) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await topUpWallet("demo", amountCents / 100);
+      onBalanceUpdated(data.balance_microdollars);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add funds");
+    } finally {
+      setLoading(false);
+    }
+  }, [valid, amountCents, onBalanceUpdated, onClose]);
 
   const handleProceed = useCallback(async () => {
     if (!valid) return;
@@ -236,12 +253,22 @@ export default function TopUpModal({
               {error && <p className="text-[12px] text-red-400">{error}</p>}
 
               <button
-                onClick={handleProceed}
+                onClick={handleQuickAdd}
                 disabled={!valid || loading}
                 className="w-full py-2.5 rounded-lg text-[13px] font-medium bg-emerald-500 text-white hover:bg-emerald-400 disabled:opacity-40 transition-colors"
               >
-                {loading ? "Creating…" : "Continue to Payment"}
+                {loading ? "Adding…" : "Add Funds"}
               </button>
+
+              {PK && (
+                <button
+                  onClick={handleProceed}
+                  disabled={!valid || loading}
+                  className="w-full py-2 rounded-lg text-[12px] font-medium border border-[#2e2a26] text-[#a8a29e] hover:border-[#4a4540] hover:text-white disabled:opacity-40 transition-colors"
+                >
+                  {loading ? "Creating…" : "Pay with Stripe →"}
+                </button>
+              )}
 
               <p className="text-[10px] text-[#6b6560] text-center">
                 Min $0.50 · Max $100 · Powered by Stripe

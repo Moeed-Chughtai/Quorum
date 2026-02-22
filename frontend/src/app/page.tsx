@@ -550,7 +550,10 @@ export default function Home() {
         </div>
         <TopUpModal
           open={topUpOpen}
-          onClose={() => setTopUpOpen(false)}
+          onClose={() => {
+            setTopUpOpen(false);
+            getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+          }}
           onBalanceUpdated={(b) => setWalletBalance(b)}
         />
       </div>
@@ -702,7 +705,10 @@ export default function Home() {
 
       <TopUpModal
         open={topUpOpen}
-        onClose={() => setTopUpOpen(false)}
+        onClose={() => {
+          setTopUpOpen(false);
+          getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+        }}
         onBalanceUpdated={(b) => setWalletBalance(b)}
       />
     </main>
