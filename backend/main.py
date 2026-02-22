@@ -104,12 +104,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allow frontend origins: localhost (dev) and any Vercel deployment
+_VERCEL_ORIGIN_REGEX = r"^https://[a-z0-9-]+\.vercel\.app$"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ],
+    allow_origin_regex=_VERCEL_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
