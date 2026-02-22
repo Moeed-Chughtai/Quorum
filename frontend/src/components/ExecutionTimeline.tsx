@@ -236,8 +236,8 @@ export default function ExecutionTimeline({
                             <>
                                 <line x1={PL} y1={baselineY} x2={VW - PR} y2={baselineY}
                                     stroke="#d97757" strokeWidth="1.2" strokeDasharray="5,4" opacity="0.55" />
-                                <text x={VW - PR - 3} y={baselineY - 4} textAnchor="end"
-                                    fontSize="7.5" fill="#d97757" opacity="0.55" fontFamily="ui-sans-serif,sans-serif,system-ui">
+                                <text x={PL + 3} y={baselineY - 4} textAnchor="start"
+                                    fontSize="7.5" fill="#d97757" opacity="0.85" fontFamily="ui-sans-serif,sans-serif,system-ui">
                                     {carbonSummary?.baseline_model_display ?? "Frontier baseline"}
                                 </text>
                             </>
@@ -290,19 +290,19 @@ export default function ExecutionTimeline({
                             </div>
                             <div className="mt-3 space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-emerald-600 w-14 shrink-0">Routed</span>
+                                    <span className="text-[8px] font-mono text-[#d97757] w-14 shrink-0">Frontier</span>
+                                    <div className="flex-1 h-2 bg-[#d97757]/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-[#d97757]/45 rounded-full w-full" />
+                                    </div>
+                                    <span className="text-[8px] font-mono text-[#d97757] tabular-nums">{carbonSummary.baseline_gco2.toFixed(4)}g</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-mono text-emerald-600 w-14 shrink-0">Agents</span>
                                     <div className="flex-1 h-2 bg-emerald-50 rounded-full overflow-hidden">
                                         <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
                                             style={{ width: `${(carbonSummary.agent_gco2 / carbonSummary.baseline_gco2) * 100}%` }} />
                                     </div>
                                     <span className="text-[8px] font-mono text-emerald-600 tabular-nums">{carbonSummary.agent_gco2.toFixed(4)}g</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-[#d97757] w-14 shrink-0">70B base</span>
-                                    <div className="flex-1 h-2 bg-[#d97757]/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-[#d97757]/45 rounded-full w-full" />
-                                    </div>
-                                    <span className="text-[8px] font-mono text-[#d97757] tabular-nums">{carbonSummary.baseline_gco2.toFixed(4)}g</span>
                                 </div>
                             </div>
                         </div>
@@ -317,19 +317,19 @@ export default function ExecutionTimeline({
                             </div>
                             <div className="mt-3 space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-[var(--accent)] w-14 shrink-0">Parallel</span>
+                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] w-14 shrink-0">Frontier</span>
+                                    <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                                        <div className="h-full bg-[var(--text-tertiary)]/35 rounded-full w-full" />
+                                    </div>
+                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] tabular-nums">{carbonSummary.sequential_time_s}s</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-mono text-[var(--accent)] w-14 shrink-0">Agents</span>
                                     <div className="flex-1 h-2 bg-[var(--accent)]/8 rounded-full overflow-hidden">
                                         <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000 ease-out"
                                             style={{ width: `${(carbonSummary.pipeline_time_s / carbonSummary.sequential_time_s) * 100}%` }} />
                                     </div>
                                     <span className="text-[8px] font-mono text-[var(--accent)] tabular-nums">{carbonSummary.pipeline_time_s}s</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] w-14 shrink-0">Sequential</span>
-                                    <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
-                                        <div className="h-full bg-[var(--text-tertiary)]/35 rounded-full w-full" />
-                                    </div>
-                                    <span className="text-[8px] font-mono text-[var(--text-tertiary)] tabular-nums">{carbonSummary.sequential_time_s}s</span>
                                 </div>
                             </div>
                         </div>
@@ -339,7 +339,7 @@ export default function ExecutionTimeline({
                 {/* ── Per-agent CO₂ breakdown ── */}
                 {breakdown.length > 0 && (
                     <div className="bg-white rounded-xl border border-[var(--border-subtle)] shadow-sm overflow-hidden">
-                        <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-raised)]/40 flex items-center justify-between">
+                        <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-raised)]/40 flex items-center gap-4">
                             <span className="text-[10px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.1em]">
                                 Per-agent CO₂
                             </span>
