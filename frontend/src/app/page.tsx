@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   getModels,
+  getWalletBalance,
   getCarbonIntensity,
   getCarbonForecast,
   decompose,
@@ -56,12 +57,14 @@ function Nav({
   selectedModel,
   source,
   carbonIntensity,
+  walletBalance,
   onModelChange,
 }: {
   models: { name: string }[];
   selectedModel: string;
   source: string;
   carbonIntensity: CarbonIntensity | null;
+  walletBalance: number | null;
   onModelChange: (m: string) => void;
 }) {
   return (
@@ -77,6 +80,13 @@ function Nav({
         </div>
 
         <div className="flex items-center gap-4">
+          {walletBalance !== null && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--nav-border)]">
+              <span className="text-[10px] text-emerald-400 font-medium font-mono tabular-nums">
+                ${(walletBalance / 1_000_000).toFixed(2)}
+              </span>
+            </div>
+          )}
           {carbonIntensity && (
             <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-800/30 rounded-md px-2 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
@@ -131,6 +141,7 @@ export default function Home() {
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesisPartial, setSynthesisPartial] = useState<string | null>(null);
   const [finalOutput, setFinalOutput] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   // Carbon tracking
   const [carbonIntensity, setCarbonIntensity] = useState<CarbonIntensity | null>(null);
@@ -186,6 +197,10 @@ export default function Home() {
   }, [selectedModel]);
 
   useEffect(() => { loadModels(); }, [loadModels]);
+
+  useEffect(() => {
+    getWalletBalance("demo").then(d => setWalletBalance(d.balance_microdollars)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     getCarbonIntensity("FR").then(setCarbonIntensity).catch(() => {});
@@ -292,7 +307,7 @@ export default function Home() {
       onCarbonUpdate:      (d) => { setTotalCarbon(d.total_gco2); setCarbonTimeSeries(p => [...p, { t: Date.now() / 1000 - executionStartRef.current, actual: d.total_gco2 }]); },
       onCarbonSummary:     (d) => setCarbonSummary(d),
       onBillingRequired:   (d) => setError(`Insufficient balance. Need $${(d.required_microdollars / 1e6).toFixed(4)} (balance: $${(d.balance_microdollars / 1e6).toFixed(4)}). Top up to continue.`),
-      onWalletUpdated:     () => { /* optional: update balance display */ },
+      onWalletUpdated:     (d) => setWalletBalance(d.balance_microdollars),
       onError:             (e) => { setError(e); setExecuting(false); setSynthesizing(false); },
     }, { user_id: "demo" });
   };
@@ -521,6 +536,7 @@ export default function Home() {
         selectedModel={selectedModel}
         source={source}
         carbonIntensity={carbonIntensity}
+        walletBalance={walletBalance}
         onModelChange={setSelectedModel}
       />
 

@@ -1,5 +1,15 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export async function getWalletBalance(userId: string = "demo"): Promise<{
+  user_id: string;
+  balance_microdollars: number;
+  balance_usd: number;
+}> {
+  const res = await fetch(`${API_BASE}/api/billing/balance?user_id=${encodeURIComponent(userId)}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export type ChatMessage = { role: string; content: string };
 
 export type Subtask = {
@@ -173,6 +183,8 @@ export type ExecutionCallbacks = {
     total_cost?: number;
   }) => void;
   onAgentFailed: (data: { id: number; title: string; error: string }) => void;
+  onWalletUpdated?: (data: { user_id: string; balance_microdollars: number }) => void;
+  onBillingRequired?: (data: { user_id: string; subtask_id: number; required_microdollars: number; balance_microdollars: number }) => void;
   onSynthesizing: () => void;
   onSynthesisToken: (data: { token: string }) => void;
   onSynthesisComplete: (data: { output: string }) => void;
@@ -238,6 +250,12 @@ export function executeSubtasks(
                   break;
                 case "agent_failed":
                   callbacks.onAgentFailed(data);
+                  break;
+                case "wallet_updated":
+                  callbacks.onWalletUpdated?.(data);
+                  break;
+                case "billing_required":
+                  callbacks.onBillingRequired?.(data);
                   break;
                 case "synthesizing":
                   callbacks.onSynthesizing();

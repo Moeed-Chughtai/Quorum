@@ -124,6 +124,22 @@ def carbon_forecast_endpoint(zone: str = "FR"):
     return get_carbon_forecast(zone)
 
 
+class WalletBalanceRequest(BaseModel):
+    user_id: str = "demo"
+
+
+@app.get("/api/billing/balance")
+def billing_balance(user_id: str = "demo"):
+    """Return current wallet balance in microdollars and USD."""
+    from billing_ledger import get_wallet_balance_microdollars
+    balance_micro = get_wallet_balance_microdollars(user_id)
+    return {
+        "user_id": user_id,
+        "balance_microdollars": balance_micro,
+        "balance_usd": round(balance_micro / 1_000_000, 6),
+    }
+
+
 @app.get("/api/models")
 def list_models():
     """List available Ollama models (cloud or local). Returns empty list + error message if unreachable."""

@@ -17,3 +17,6 @@ backend/billing.db
 .idea/
 .DS_Store
 *.log
+
+# Local tools (binaries + auth config — downloaded via scripts/setup-stripe.sh)
+.tools/
